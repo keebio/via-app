@@ -9,6 +9,20 @@ export type Theme = {
 
 export const THEMES = {
   ...{
+    KEEBIO: {
+      alpha: {
+        c: '#f0f0f0',
+        t: '#272727',
+      },
+      mod: {
+        c: '#7766BC',
+        t: '#f0f0f0',
+      },
+      accent: {
+        c: '#009999',
+        t: '#f0f0f0',
+      },
+    },
     OLIVIA_DARK: {
       alpha: {
         c: '#363434',

@@ -1,7 +1,7 @@
 {
     "name": "VIA",
 	"short_name": "VIA",
-	"description": "VIA - Your keyboard's best friend",
+	"description": "VIA - Keyboard remapping app with additional support for Keebio boards",
 	"start_url": ".",
     "icons": [
         {

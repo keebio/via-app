@@ -1,9 +1,10 @@
-import {faDiscord, faGithub} from '@fortawesome/free-brands-svg-icons';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import { faDiscord, faGithub } from '@fortawesome/free-brands-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styled from 'styled-components';
-import {VIALogo} from '../icons/via';
-import {CategoryMenuTooltip} from '../inputs/tooltip';
-import {CategoryIconContainer} from '../panes/grid';
+import { VIALogo } from '../icons/via';
+import { CategoryMenuTooltip } from '../inputs/tooltip';
+import { CategoryIconContainer } from '../panes/grid';
+import { faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
 
 const ExternalLinkContainer = styled.span`
   position: absolute;
@@ -14,6 +15,12 @@ const ExternalLinkContainer = styled.span`
 
 export const ExternalLinks = () => (
   <ExternalLinkContainer>
+    <a href="https://docs.keeb.io/via/" target="_blank">
+      <CategoryIconContainer>
+        <FontAwesomeIcon size={'xl'} icon={faCircleQuestion} />
+        <CategoryMenuTooltip>Usage Guide</CategoryMenuTooltip>
+      </CategoryIconContainer>
+    </a>
     <a href="https://caniusevia.com/" target="_blank">
       <CategoryIconContainer>
         <VIALogo height="25px" fill="currentColor" />

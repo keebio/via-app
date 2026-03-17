@@ -17,8 +17,10 @@ import {useAppSelector} from 'src/store/hooks';
 import {
   getShowDesignTab,
   getDisableFastRemap,
+  getShowSliderValuesMode,
   toggleCreatorMode,
   toggleFastRemap,
+  updateShowSliderValuesMode,
   getThemeMode,
   toggleThemeMode,
   getThemeName,
@@ -35,6 +37,7 @@ import {faToolbox} from '@fortawesome/free-solid-svg-icons';
 import {getSelectedConnectedDevice} from 'src/store/devicesSlice';
 import {ErrorMessage} from '../styled';
 import {webGLIsAvailable} from 'src/utils/test-webgl';
+import {useTranslation} from 'react-i18next';
 
 const Container = styled.div`
   display: flex;
@@ -54,9 +57,11 @@ const SettingsErrorMessage = styled(ErrorMessage)`
 `;
 
 export const Settings = () => {
+  const {t} = useTranslation();
   const dispatch = useDispatch();
   const showDesignTab = useAppSelector(getShowDesignTab);
   const disableFastRemap = useAppSelector(getDisableFastRemap);
+  const ShowSliderValuesMode = useAppSelector(getShowSliderValuesMode);
   const themeMode = useAppSelector(getThemeMode);
   const themeName = useAppSelector(getThemeName);
   const renderMode = useAppSelector(getRenderMode);
@@ -70,6 +75,26 @@ export const Settings = () => {
   }));
   const themeDefaultValue = themeSelectOptions.find(
     (opt) => opt.value === themeName,
+  );
+
+  const ShowSliderModeOptions = webGLIsAvailable
+    ? [
+        {
+          label: t('Slider Only'),
+          value: 'Slider Only',
+        },
+        {
+          label: t('Slider & Show Value'),
+          value: 'Slider & Show Value',
+        },
+        {
+          label: t('Slider & Input Field'),
+          value: 'Slider & Input Field',
+        },
+      ]
+    : [{label: t('Slider Only'), value: 'Slider Only'}];
+  const showSliderModeDefaultValue = ShowSliderModeOptions.find(
+    (opt) => opt.value === ShowSliderValuesMode,
   );
 
   const renderModeOptions = webGLIsAvailable
@@ -95,7 +120,7 @@ export const Settings = () => {
             <Row $selected={true}>
               <IconContainer>
                 <FontAwesomeIcon icon={faToolbox} />
-                <MenuTooltip>General</MenuTooltip>
+                <MenuTooltip>{t('General')}</MenuTooltip>
               </IconContainer>
             </Row>
           </MenuContainer>
@@ -103,7 +128,7 @@ export const Settings = () => {
         <SpanOverflowCell style={{flex: 1, borderWidth: 0}}>
           <Container>
             <ControlRow>
-              <Label>Show Design tab</Label>
+              <Label>{t('Show Design tab')}</Label>
               <Detail>
                 <AccentSlider
                   onChange={() => dispatch(toggleCreatorMode())}
@@ -112,7 +137,7 @@ export const Settings = () => {
               </Detail>
             </ControlRow>
             <ControlRow>
-              <Label>Fast Key Mapping</Label>
+              <Label>{t('Fast Key Mapping')}</Label>
               <Detail>
                 <AccentSlider
                   onChange={() => dispatch(toggleFastRemap())}
@@ -121,7 +146,19 @@ export const Settings = () => {
               </Detail>
             </ControlRow>
             <ControlRow>
-              <Label>Light Mode</Label>
+              <Label>{t('Slider Mode')}</Label>
+              <Detail>
+                <AccentSelect
+                  defaultValue={showSliderModeDefaultValue}
+                  options={ShowSliderModeOptions}
+                  onChange={(option: any) => {
+                    option && dispatch(updateShowSliderValuesMode(option.value));
+                  }}
+                />
+              </Detail>
+            </ControlRow>
+            <ControlRow>
+              <Label>{t('Light Mode')}</Label>
               <Detail>
                 <AccentSlider
                   onChange={() => dispatch(toggleThemeMode())}
@@ -130,7 +167,7 @@ export const Settings = () => {
               </Detail>
             </ControlRow>
             <ControlRow>
-              <Label>Keycap Theme</Label>
+              <Label>{t('Keycap Theme')}</Label>
               <Detail>
                 <AccentSelect
                   defaultValue={themeDefaultValue}
@@ -142,7 +179,7 @@ export const Settings = () => {
               </Detail>
             </ControlRow>
             <ControlRow>
-              <Label>Render Mode</Label>
+              <Label>{t('Render Mode')}</Label>
               <Detail>
                 <AccentSelect
                   defaultValue={renderModeDefaultValue}
@@ -154,7 +191,7 @@ export const Settings = () => {
               </Detail>
             </ControlRow>
             <ControlRow>
-              <Label>Show Diagnostic Information</Label>
+              <Label>{t('Show Diagnostic Information')}</Label>
 
               <Detail>
                 {selectedDevice ? (
@@ -164,7 +201,7 @@ export const Settings = () => {
                   />
                 ) : (
                   <SettingsErrorMessage>
-                    Requires connected device
+                    {t('Requires connected device')}
                   </SettingsErrorMessage>
                 )}
               </Detail>
@@ -173,7 +210,7 @@ export const Settings = () => {
           {showDiagnostics && selectedDevice ? (
             <DiagnosticContainer>
               <ControlRow>
-                <Label>VIA Firmware Protocol</Label>
+                <Label>{t('VIA Firmware Protocol')}</Label>
                 <Detail>{selectedDevice.protocol}</Detail>
               </ControlRow>
             </DiagnosticContainer>

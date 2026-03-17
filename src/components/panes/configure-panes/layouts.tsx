@@ -13,26 +13,28 @@ import {
 import {useAppDispatch, useAppSelector} from 'src/store/hooks';
 import type {LayoutLabel} from '@the-via/reader';
 import type {FC} from 'react';
+import {useTranslation} from 'react-i18next';
 
 const LayoutControl: React.FC<{
   onChange: (val: any) => void;
   meta: {labels: LayoutLabel; selectedOption: number};
 }> = (props) => {
+  const {t} = useTranslation();
   const {onChange, meta} = props;
   const {labels, selectedOption} = meta;
   if (Array.isArray(labels)) {
     const [label, ...optionLabels] = labels;
     const options = optionLabels.map((label, idx) => ({
-      label,
+      label: t(label),
       value: `${idx}`,
     }));
     return (
       <ControlRow>
-        <Label>{label}</Label>
+        <Label>{t(label)}</Label>
         <Detail>
           <AccentSelect
             /*width={150}*/
-            defaultValue={options[selectedOption]}
+            value={options[selectedOption]}
             options={options}
             onChange={(option: any) => {
               if (option) {
@@ -46,7 +48,7 @@ const LayoutControl: React.FC<{
   } else {
     return (
       <ControlRow>
-        <Label>{labels}</Label>
+        <Label>{t(labels)}</Label>
         <Detail>
           <AccentSlider
             isChecked={!!selectedOption}

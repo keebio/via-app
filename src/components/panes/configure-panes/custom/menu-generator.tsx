@@ -7,7 +7,12 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import React, {useState} from 'react';
 import styled from 'styled-components';
-import {OverflowCell, SubmenuCell, SubmenuRow} from '../../grid';
+import {
+  OverflowCell,
+  SubmenuOverflowCell,
+  SubmenuCell,
+  SubmenuRow,
+} from '../../grid';
 import {CenterPane} from '../../pane';
 import {title, component} from '../../../icons/lightbulb';
 import {VIACustomItem} from './custom-control';
@@ -25,11 +30,12 @@ import {
   getSelectedCustomMenuData,
   updateCustomMenuValue,
 } from 'src/store/menusSlice';
+import {useTranslation} from 'react-i18next';
 
 type Category = {
   label: string;
-  // TODO: type this any
   Menu: React.FC<any>;
+  isHidden?: boolean;
 };
 
 const CustomPane = styled(CenterPane)`
@@ -61,6 +67,19 @@ function isSlice(
 }
 
 function categoryGenerator(props: any): Category[] {
+  // Safety check:  return empty if data not loaded yet
+  if (!props.selectedCustomMenuData) {
+    return [];
+  }
+
+  // Check if the entire menu has a showIf condition
+  if (
+    'showIf' in props.viaMenu &&
+    !evalExpr(props.viaMenu.showIf as string, props.selectedCustomMenuData)
+  ) {
+    return [];
+  }
+
   return props.viaMenu.content.flatMap((menu: any) =>
     submenuGenerator(menu, props),
   );
@@ -70,6 +89,11 @@ function itemGenerator(
   elem: TagWithId<VIAItem, VIAItemSlice>,
   props: any,
 ): any {
+  // Safety check:  return empty if data not loaded yet
+  if (!props.selectedCustomMenuData) {
+    return [];
+  }
+
   if (
     'showIf' in elem &&
     !evalExpr(elem.showIf as string, props.selectedCustomMenuData)
@@ -106,18 +130,44 @@ function submenuGenerator(
   elem: TagWithId<VIASubmenu, VIASubmenuSlice>,
   props: any,
 ): any {
-  if (
-    'showIf' in elem &&
-    !evalExpr(elem.showIf as string, props.selectedCustomMenuData)
-  ) {
+  // Safety check: return empty if data not loaded yet
+  if (!props.selectedCustomMenuData) {
     return [];
   }
+
+  const {t} = useTranslation();
+
+  const isHidden =
+    'showIf' in elem &&
+    !evalExpr(elem.showIf as string, props.selectedCustomMenuData);
+
   if ('label' in elem) {
+    function t(arg0: string): React.ReactNode | Iterable<React.ReactNode> {
+      throw new Error('Function not implemented.');
+    }
+
     return {
       label: elem.label,
-      Menu: MenuBuilder(elem),
+      Menu: isHidden
+        ? () => (
+            <div
+              style={{
+                padding: '20px',
+                textAlign: 'center',
+                color: 'var(--color_label)',
+              }}
+            >
+              {t('This feature is not available for this firmware version.')}
+            </div>
+          )
+        : MenuBuilder(elem),
+      isHidden,
     };
   } else {
+    // For slices, filter out if hidden
+    if (isHidden) {
+      return [];
+    }
     return elem.content.flatMap((e) =>
       submenuGenerator(e as TagWithId<VIASubmenu, VIASubmenuSlice>, props),
     );
@@ -125,13 +175,8 @@ function submenuGenerator(
 }
 
 export const Pane: React.FC<Props> = (props: any) => {
+  const {t} = useTranslation();
   const dispatch = useAppDispatch();
-  const menus = categoryGenerator(props);
-  const [selectedCategory, setSelectedCategory] = useState(
-    menus[0] || {label: '', Menu: () => <div />},
-  );
-  const SelectedMenu = selectedCategory.Menu;
-
   const selectedDefinition = useAppSelector(getSelectedDefinition);
   const selectedCustomMenuData = useAppSelector(getSelectedCustomMenuData);
 
@@ -143,25 +188,57 @@ export const Pane: React.FC<Props> = (props: any) => {
       dispatch(updateCustomMenuValue(command, ...rest)),
   };
 
+  const menus = categoryGenerator(childProps);
+
+  const [selectedCategory, setSelectedCategory] = useState(
+    menus[0] || {label: '', Menu: () => <div />},
+  );
+  const SelectedMenu = selectedCategory.Menu;
+
   if (!selectedDefinition || !selectedCustomMenuData) {
     return null;
   }
 
+  // Handle case where all menus are hidden
+  if (menus.length === 0) {
+    return (
+      <OverflowCell>
+        <CustomPane>
+          <Container>
+            <div
+              style={{
+                padding: '20px',
+                textAlign: 'center',
+                color: 'var(--color_label)',
+              }}
+            >
+              {t('No features available for this firmware version.')}
+            </div>
+          </Container>
+        </CustomPane>
+      </OverflowCell>
+    );
+  }
+
   return (
     <>
-      <SubmenuCell>
+      <SubmenuOverflowCell>
         <MenuContainer>
           {menus.map((menu) => (
             <SubmenuRow
               $selected={selectedCategory.label === menu.label}
-              onClick={() => setSelectedCategory(menu)}
+              onClick={() => !menu.isHidden && setSelectedCategory(menu)}
               key={menu.label}
+              style={{
+                opacity: menu.isHidden ? 0.5 : 1,
+                cursor: menu.isHidden ? 'not-allowed' : 'pointer',
+              }}
             >
-              {menu.label}
+              {t(menu.label)}
             </SubmenuRow>
           ))}
         </MenuContainer>
-      </SubmenuCell>
+      </SubmenuOverflowCell>
       <OverflowCell>
         <CustomPane>
           <Container>{SelectedMenu(childProps)}</Container>

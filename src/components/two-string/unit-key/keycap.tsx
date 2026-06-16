@@ -89,7 +89,7 @@ const paintKeycapLabel = (
     let fontHeight = 0.75 * fontSize;
     let topLabelOffset = label.offset[0] * fontHeight;
     let bottomLabelOffset = label.offset[1] * fontHeight;
-    context.font = `bold ${fontSize}px ${fontFamily}`;
+    context.font = `${fontSize}px ${fontFamily}`;
     context.fillText(
       label.topLabel,
       topLabelMargin.x,
@@ -104,7 +104,7 @@ const paintKeycapLabel = (
     let fontSize = 13 * label.size;
     let fontHeight = 0.75 * fontSize;
     let faceMidLeftY = canvasHeight / 2;
-    context.font = `bold ${fontSize}px ${fontFamily}`;
+    context.font = `${fontSize}px ${fontFamily}`;
     context.fillText(
       label.label,
       centerLabelMargin.x,
@@ -118,7 +118,7 @@ const paintKeycapLabel = (
   } else if (typeof label.label === 'string') {
     let fontSize = 22;
     let fontHeight = 0.75 * fontSize;
-    context.font = `bold ${fontSize}px ${fontFamily}`;
+    context.font = `${fontSize}px ${fontFamily}`;
     context.fillText(
       label.label,
       singleLabelMargin.x,

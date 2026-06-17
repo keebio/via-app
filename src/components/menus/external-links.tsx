@@ -5,16 +5,19 @@ import { VIALogo } from '../icons/via';
 import { CategoryMenuTooltip } from '../inputs/tooltip';
 import { CategoryIconContainer } from '../panes/grid';
 import { faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
+import { LanguageSelect } from './language-select';
 
 const ExternalLinkContainer = styled.span`
   position: absolute;
   right: 1em;
   display: flex;
   gap: 1em;
+  align-items: center;
 `;
 
 export const ExternalLinks = () => (
   <ExternalLinkContainer>
+    <LanguageSelect />
     <a href="https://docs.keeb.io/via/" target="_blank">
       <CategoryIconContainer>
         <FontAwesomeIcon size={'xl'} icon={faCircleQuestion} />

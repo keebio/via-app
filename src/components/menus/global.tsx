@@ -10,7 +10,6 @@ import {CategoryIconContainer} from '../panes/grid';
 import {ErrorLink, ErrorsPaneConfig} from '../panes/errors';
 import {ExternalLinks} from './external-links';
 import {useTranslation} from 'react-i18next';
-import {LanguageSelect} from './language-select';
 
 const Container = styled.div`
   width: 100vw;
@@ -58,7 +57,6 @@ export const UnconnectedGlobalMenu = () => {
       <GlobalContainer>
         <ErrorLink />
         {Panes}
-        <LanguageSelect />
         <ExternalLinks />
       </GlobalContainer>
     </React.Fragment>

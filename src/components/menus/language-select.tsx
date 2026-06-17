@@ -6,8 +6,7 @@ import styled from 'styled-components';
 import {useTranslation} from 'react-i18next';
 
 const Container = styled.div`
-  position: absolute;
-  right: 200px;
+  position: relative;
   font-size: 18px;
 `;
 

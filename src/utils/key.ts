@@ -842,6 +842,7 @@ export function getKeycodes(numMacros = 16): IKeycodeMenu[] {
           title: 'Right Shift when held, Enter when tapped',
         },
         {name: 'Reset', code: 'RESET', title: 'Reset the keyboard'},
+        {name: 'Clear Memory', code: 'QK_CLEAR_EEPROM', title: 'Clear EEPROM (reset keyboard settings to default)'},
         {name: 'Debug', code: 'DEBUG', title: 'Toggle debug mode'},
         {
           name: 'Toggle NKRO',

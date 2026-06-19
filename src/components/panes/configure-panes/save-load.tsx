@@ -254,13 +254,13 @@ export const Pane: FC = () => {
       <SaveLoadPane>
         <Container>
           <ControlRow>
-            <Label>{t('Save Current Layout')}</Label>
+            <Label>{t('Export Current Layout')}</Label>
             <Detail>
               <AccentButton onClick={saveLayout}>{t('Save')}</AccentButton>
             </Detail>
           </ControlRow>
           <ControlRow>
-            <Label>{t('Load Saved Layout')}</Label>
+            <Label>{t('Import Layout')}</Label>
             <Detail>
               <AccentUploadButton onLoad={loadLayout}>
                 {t('Load')}

@@ -256,14 +256,14 @@ export const Pane: FC = () => {
           <ControlRow>
             <Label>{t('Export Current Layout')}</Label>
             <Detail>
-              <AccentButton onClick={saveLayout}>{t('Save')}</AccentButton>
+              <AccentButton onClick={saveLayout}>{t('Export')}</AccentButton>
             </Detail>
           </ControlRow>
           <ControlRow>
             <Label>{t('Import Layout')}</Label>
             <Detail>
               <AccentUploadButton onLoad={loadLayout}>
-                {t('Load')}
+                {t('Import')}
               </AccentUploadButton>
             </Detail>
           </ControlRow>

@@ -48,6 +48,8 @@
   "Successfully updated layout!": "成功更新布局!",
   "Export Current Layout": "导出当前布局",
   "Import Layout": "导入布局",
+  "Export": "导出",
+  "Import": "导入",
   "Save": "保存",
   "Load": "加载",
   "Firmware": "固件",

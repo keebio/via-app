@@ -48,6 +48,8 @@
   "Successfully updated layout!": "Layout erfolgreich aktualisiert!",
   "Export Current Layout": "Aktuelles Layout exportieren",
   "Import Layout": "Layout importieren",
+  "Export": "Exportieren",
+  "Import": "Importieren",
   "Save": "Speichern",
   "Load": "Laden",
   "Firmware": "Firmware",

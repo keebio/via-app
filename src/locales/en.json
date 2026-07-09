@@ -92,6 +92,8 @@
   "Successfully updated layout!": "Successfully updated layout!",
   "Export Current Layout": "Export Current Layout",
   "Import Layout": "Import Layout",
+  "Export": "Export",
+  "Import": "Import",
   "Save": "Save",
   "Load": "Load",
   "Firmware": "Firmware",

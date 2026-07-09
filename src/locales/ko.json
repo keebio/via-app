@@ -48,6 +48,8 @@
   "Successfully updated layout!": "레이아웃이 성공적으로 업데이트되었습니다!",
   "Export Current Layout": "현재 레이아웃 내보내기",
   "Import Layout": "레이아웃 가져오기",
+  "Export": "내보내기",
+  "Import": "가져오기",
   "Save": "저장",
   "Load": "불러오기",
   "Firmware": "펌웨어",

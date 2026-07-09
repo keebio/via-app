@@ -48,6 +48,8 @@
   "Successfully updated layout!": "レイアウトが正常に更新されました!",
   "Export Current Layout": "現在のレイアウトをエクスポート",
   "Import Layout": "レイアウトをインポート",
+  "Export": "エクスポート",
+  "Import": "インポート",
   "Save": "保存",
   "Load": "読み込み",
   "Firmware": "ファームウェア",

@@ -29,6 +29,7 @@ const defaultStoreData = {
   definitions: {},
   settings: {
     showDesignTab: false,
+    showConsoleTab: false,
     disableFastRemap: false,
     ShowSliderValuesMode: 'Slider & Show Value' as const,
     renderMode: '2D' as const,

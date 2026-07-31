@@ -14,6 +14,7 @@ import {
   getSelectedKeyboardAPI,
 } from './devicesSlice';
 import type {AppThunk, RootState} from './index';
+import {getSelectedKeycodesVersion} from './firmwareSlice';
 
 type MacrosState = {
   ast: RawKeycodeSequence[];
@@ -72,7 +73,8 @@ export const loadMacros =
       try {
         const state = getState();
         const api = getSelectedKeyboardAPI(state) as KeyboardAPI;
-        const macroApi = getMacroAPI(protocol, api);
+        const keycodesVersion = getSelectedKeycodesVersion(state);
+        const macroApi = getMacroAPI(protocol, keycodesVersion, api);
         if (macroApi) {
           const sequences = await macroApi.readRawKeycodeSequences();
           const macroBufferSize = await api.getMacroBufferSize();
@@ -92,8 +94,9 @@ export const saveMacros =
   async (dispatch, getState) => {
     const state = getState();
     const api = getSelectedKeyboardAPI(state) as KeyboardAPI;
+    const keycodesVersion = getSelectedKeycodesVersion(state);
     const {protocol} = connectedDevice;
-    const macroApi = getMacroAPI(protocol, api);
+    const macroApi = getMacroAPI(protocol, keycodesVersion, api);
     if (macroApi) {
       const sequences = macros.map((expression) => {
         const optimizedSequence = expressionToSequence(expression);

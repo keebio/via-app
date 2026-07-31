@@ -14,6 +14,7 @@ import {
   getBasicKeyToByte,
   getSelectedDefinition,
 } from 'src/store/definitionsSlice';
+import {getSelectedConnectedDevice} from 'src/store/devicesSlice';
 import {
   ModalBackground,
   ModalContainer,
@@ -136,12 +137,13 @@ const getInputItems = (arr: IKeycode[]) =>
 export const KeycodeModal: React.FC<KeycodeModalProps> = (props) => {
   const {t} = useTranslation();
   const selectedDefinition = useAppSelector(getSelectedDefinition);
+  const selectedDevice = useAppSelector(getSelectedConnectedDevice);
   const {basicKeyToByte, byteToKey} = useAppSelector(getBasicKeyToByte);
-  if (!selectedDefinition) {
+  if (!selectedDefinition || !selectedDevice) {
     return null;
   }
   const supportedInputItems = getInputItems(
-    getKeycodesForKeyboard(selectedDefinition),
+    getKeycodesForKeyboard(selectedDefinition, selectedDevice.protocol),
   );
   const [inputItems, setInputItems] = useState(supportedInputItems);
   const defaultInput = anyKeycodeToString(

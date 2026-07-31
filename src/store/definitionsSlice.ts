@@ -32,6 +32,7 @@ import {getByteToKey} from 'src/utils/key';
 import {del, entries, setMany, update} from 'idb-keyval';
 import {isFulfilledPromise} from 'src/utils/type-predicates';
 import {extractDeviceInfo, logAppError} from './errorsSlice';
+import {getSelectedKeycodesVersion} from './firmwareSlice';
 
 type LayoutOption = number;
 type LayoutOptionsMap = {[devicePath: string]: LayoutOption[] | null}; // TODO: is this null valid?
@@ -152,9 +153,11 @@ export const getSelectedDefinition = createSelector(
 
 export const getBasicKeyToByte = createSelector(
   getSelectedConnectedDevice,
-  (connectedDevice) => {
+  getSelectedKeycodesVersion,
+  (connectedDevice, keycodesVersion) => {
     const basicKeyToByte = getBasicKeyDict(
       connectedDevice ? connectedDevice.protocol : 0,
+      keycodesVersion,
     );
     return {basicKeyToByte, byteToKey: getByteToKey(basicKeyToByte)};
   },

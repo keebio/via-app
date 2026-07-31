@@ -17,6 +17,10 @@ import {
 import {selectConnectedDeviceByPath} from 'src/store/devicesThunks';
 import {isElectron} from 'src/utils/running-context';
 import {useTranslation} from 'react-i18next';
+import {
+  getConnectedDefinitionNames,
+  getSelectedDefinitionName,
+} from 'src/store/definitionNameSlice';
 
 const Container = styled.div`
   position: absolute;
@@ -107,7 +111,11 @@ const ClickCover = styled.div`
   background: rgba(0, 0, 0, 0.75);
 `;
 
-type ConnectedKeyboardDefinition = [string, VIADefinitionV2 | VIADefinitionV3];
+type ConnectedKeyboardDefinition = [
+  string,
+  VIADefinitionV2 | VIADefinitionV3,
+  string,
+];
 
 const KeyboardSelectors: React.FC<{
   show: boolean;
@@ -127,14 +135,14 @@ const KeyboardSelectors: React.FC<{
     <>
       {props.show && <ClickCover onClick={props.onClickOut} />}
       <KeyboardList $show={props.show}>
-        {props.keyboards.map(([path, keyboard]) => {
+        {props.keyboards.map(([path, , name]) => {
           return (
             <KeyboardButton
               $selected={path === props.selectedPath}
               key={path}
               onClick={() => props.selectKeyboard(path as string)}
             >
-              {keyboard.name}
+              {name}
             </KeyboardButton>
           );
         })}
@@ -153,6 +161,10 @@ export const Badge = () => {
   const dispatch = useAppDispatch();
   const definitions = useAppSelector(getDefinitions);
   const selectedDefinition = useAppSelector(getSelectedDefinition);
+  const selectedDefinitionName = useAppSelector(getSelectedDefinitionName);
+  const getConnectedDefinitionName = useAppSelector(
+    getConnectedDefinitionNames,
+  );
   const connectedDevices = useAppSelector(getConnectedDevices);
   const selectedPath = useAppSelector(getSelectedDevicePath);
   const [showList, setShowList] = useState(false);
@@ -160,15 +172,19 @@ export const Badge = () => {
   const connectedKeyboardDefinitions: ConnectedKeyboardDefinition[] = useMemo(
     () =>
       Object.entries(connectedDevices)
-        .map<ConnectedKeyboardDefinition>(([path, device]) => [
-          path,
-          definitions[(device as ConnectedDevice).vendorProductId] &&
-            definitions[(device as ConnectedDevice).vendorProductId][
-              (device as ConnectedDevice).requiredDefinitionVersion
-            ],
-        ])
+        .map<ConnectedKeyboardDefinition>(([path, device]) => {
+          const connectedDevice = device as ConnectedDevice;
+          return [
+            path,
+            definitions[connectedDevice.vendorProductId] &&
+              definitions[connectedDevice.vendorProductId][
+                connectedDevice.requiredDefinitionVersion
+              ],
+            getConnectedDefinitionName(connectedDevice),
+          ];
+        })
         .filter((i) => i[1]),
-    [connectedDevices, definitions],
+    [connectedDevices, definitions, getConnectedDefinitionName],
   );
 
   if (!selectedDefinition || !selectedPath) {
@@ -179,7 +195,7 @@ export const Badge = () => {
     <>
       <Container>
         <KeyboardTitle onClick={() => setShowList(!showList)}>
-          {selectedDefinition.name}
+          {selectedDefinitionName}
           <FontAwesomeIcon
             icon={faAngleDown}
             style={{

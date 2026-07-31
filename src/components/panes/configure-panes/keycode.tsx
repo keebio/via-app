@@ -12,6 +12,7 @@ import {
   IKeycode,
   IKeycodeMenu,
   categoriesForKeycodeModule,
+  getQMKLightingKeycodes,
 } from '../../../utils/key';
 import {ErrorMessage} from '../../styled';
 import {
@@ -160,8 +161,19 @@ export const KeycodePane: FC = () => {
   const keycodeLUT = keymapExtras[hostKeyboardLayout]?.keycodeLUT;
 
   const KeycodeCategories = useMemo(
-    () => generateKeycodeCategories(basicKeyToByte, macroCount),
-    [basicKeyToByte, macroCount],
+    () =>
+      generateKeycodeCategories(basicKeyToByte, macroCount).map((category) =>
+        category.id === 'qmk_lighting' && selectedDefinition && selectedDevice
+          ? {
+              ...category,
+              keycodes: getQMKLightingKeycodes(
+                selectedDefinition,
+                selectedDevice.protocol,
+              ),
+            }
+          : category,
+      ),
+    [basicKeyToByte, macroCount, selectedDefinition, selectedDevice],
   );
 
   // TODO: improve typing so we can get rid of this

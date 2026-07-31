@@ -7,6 +7,7 @@ export type KeyboardAPIError = {
   commandBytes: number[];
   responseBytes: number[];
   deviceInfo: DeviceInfo;
+  details?: string;
 };
 
 export type AppError = {
@@ -41,7 +42,9 @@ export const getErrorTimestamp = () => {
 export const extractMessageFromKeyboardAPIError = (error: KeyboardAPIError) =>
   `Command Name: ${error.commandName}
 Command: ${formatBytes(error.commandBytes)}
-Response: ${formatBytes(error.responseBytes)}`;
+Response: ${formatBytes(error.responseBytes)}${
+    error.details ? `\nDetails: ${error.details}` : ''
+  }`;
 export const getMessageFromError = (e: Error) => e.stack || e.message;
 const formatBytes = (bytes: number[]) => bytes.join(' ');
 

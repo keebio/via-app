@@ -29,6 +29,66 @@ export interface IKeycodeMenu {
   detailed?: string;
 }
 
+const qmkBacklightKeycodes: IKeycode[] = [
+  {name: 'BL Toggle', code: 'BL_TOGG'},
+  {name: 'BL On', code: 'BL_ON'},
+  {name: 'BL Off', code: 'BL_OFF', shortName: 'BL Off'},
+  {name: 'BL -', code: 'BL_DEC'},
+  {name: 'BL +', code: 'BL_INC'},
+  {name: 'BL Cycle', code: 'BL_STEP'},
+  {name: 'BR Toggle', code: 'BL_BRTG'},
+];
+
+const legacyRGBKeycodes: IKeycode[] = [
+  {name: 'RGB Toggle', code: 'RGB_TOG'},
+  {name: 'RGB Mode -', code: 'RGB_RMOD'},
+  {name: 'RGB Mode +', code: 'RGB_MOD'},
+  {name: 'Hue -', code: 'RGB_HUD'},
+  {name: 'Hue +', code: 'RGB_HUI'},
+  {name: 'Sat -', code: 'RGB_SAD'},
+  {name: 'Sat +', code: 'RGB_SAI'},
+  {name: 'Bright -', code: 'RGB_VAD'},
+  {name: 'Bright +', code: 'RGB_VAI'},
+  {name: 'Effect Speed-', code: 'RGB_SPD'},
+  {name: 'Effect Speed+', code: 'RGB_SPI'},
+  {name: 'RGB Mode P', code: 'RGB_M_P', title: 'Plain'},
+  {name: 'RGB Mode B', code: 'RGB_M_B', title: 'Breathe'},
+  {name: 'RGB Mode R', code: 'RGB_M_R', title: 'Rainbow'},
+  {name: 'RGB Mode SW', code: 'RGB_M_SW', title: 'Swirl'},
+  {name: 'RGB Mode SN', code: 'RGB_M_SN', title: 'Snake'},
+  {name: 'RGB Mode K', code: 'RGB_M_K', title: 'Knight'},
+  {name: 'RGB Mode X', code: 'RGB_M_X', title: 'Xmas'},
+  {name: 'RGB Mode G', code: 'RGB_M_G', title: 'Gradient'},
+];
+
+const qmkRGBLightKeycodes: IKeycode[] = [
+  {name: 'UG Toggle', code: 'UG_TOGG'},
+  {name: 'UG Mode +', code: 'UG_NEXT'},
+  {name: 'UG Mode -', code: 'UG_PREV'},
+  {name: 'UG Hue +', code: 'UG_HUEU'},
+  {name: 'UG Hue -', code: 'UG_HUED'},
+  {name: 'UG Sat +', code: 'UG_SATU'},
+  {name: 'UG Sat -', code: 'UG_SATD'},
+  {name: 'UG Bright +', code: 'UG_VALU'},
+  {name: 'UG Bright -', code: 'UG_VALD'},
+  {name: 'UG Speed +', code: 'UG_SPDU'},
+  {name: 'UG Speed -', code: 'UG_SPDD'},
+];
+
+const qmkRGBMatrixKeycodes: IKeycode[] = [
+  {name: 'RM Toggle', code: 'RM_TOGG'},
+  {name: 'RM Mode +', code: 'RM_NEXT'},
+  {name: 'RM Mode -', code: 'RM_PREV'},
+  {name: 'RM Hue +', code: 'RM_HUEU'},
+  {name: 'RM Hue -', code: 'RM_HUED'},
+  {name: 'RM Sat +', code: 'RM_SATU'},
+  {name: 'RM Sat -', code: 'RM_SATD'},
+  {name: 'RM Bright +', code: 'RM_VALU'},
+  {name: 'RM Bright -', code: 'RM_VALD'},
+  {name: 'RM Speed +', code: 'RM_SPDU'},
+  {name: 'RM Speed -', code: 'RM_SPDD'},
+];
+
 // Tests if label is an alpha (including Unicode letters)
 export function isAlpha(label: string) {
   return label.length === 1 && /\p{L}/u.test(label);
@@ -208,17 +268,20 @@ export const keycodesList = getKeycodes().reduce<IKeycode[]>(
 );
 
 export const getByteToKey = (basicKeyToByte: Record<string, number>) =>
-  Object.keys(basicKeyToByte).reduce((p, n) => {
-    const key = basicKeyToByte[n];
-    if (key in p) {
-      const basicKeycode = keycodesList.find(({code}) => code === n);
-      if (basicKeycode) {
-        return {...p, [key]: basicKeycode.code};
+  Object.keys(basicKeyToByte).reduce(
+    (p, n) => {
+      const key = basicKeyToByte[n];
+      if (key in p) {
+        const basicKeycode = keycodesList.find(({code}) => code === n);
+        if (basicKeycode) {
+          return {...p, [key]: basicKeycode.code};
+        }
+        return p;
       }
-      return p;
-    }
-    return {...p, [key]: n};
-  }, {} as {[key: number]: string});
+      return {...p, [key]: n};
+    },
+    {} as {[key: number]: string},
+  );
 
 function isLayerKey(byte: number, basicKeyToByte: Record<string, number>) {
   return [
@@ -477,14 +540,10 @@ function generateMacros(numMacros: number = 16): IKeycode[] {
     const newName = `M${idx}`;
     const newCode = `MACRO(${idx})`;
     const newTitle = `Macro ${idx}`;
-    res = [
-      ...res,
-      {name: newName, title: newTitle, code: newCode},
-    ];
+    res = [...res, {name: newName, title: newTitle, code: newCode}];
   }
   return res;
 }
-
 
 export function getKeycodes(numMacros = 16): IKeycodeMenu[] {
   return [
@@ -762,7 +821,7 @@ export function getKeycodes(numMacros = 16): IKeycodeMenu[] {
       id: 'macro',
       label: 'Macro',
       width: 'label',
-      keycodes: generateMacros(numMacros)
+      keycodes: generateMacros(numMacros),
     },
     buildLayerMenu(),
     {
@@ -1014,32 +1073,10 @@ export function getKeycodes(numMacros = 16): IKeycodeMenu[] {
       label: 'Lighting',
       width: 'label',
       keycodes: [
-        {name: 'BL Toggle', code: 'BL_TOGG'},
-        {name: 'BL On', code: 'BL_ON'},
-        {name: 'BL Off', code: 'BL_OFF', shortName: 'BL Off'},
-        {name: 'BL -', code: 'BL_DEC'},
-        {name: 'BL +', code: 'BL_INC'},
-        {name: 'BL Cycle', code: 'BL_STEP'},
-        {name: 'BR Toggle', code: 'BL_BRTG'},
-        {name: 'RGB Toggle', code: 'RGB_TOG'},
-        {name: 'RGB Mode -', code: 'RGB_RMOD'},
-        {name: 'RGB Mode +', code: 'RGB_MOD'},
-        {name: 'Hue -', code: 'RGB_HUD'},
-        {name: 'Hue +', code: 'RGB_HUI'},
-        {name: 'Sat -', code: 'RGB_SAD'},
-        {name: 'Sat +', code: 'RGB_SAI'},
-        {name: 'Bright -', code: 'RGB_VAD'},
-        {name: 'Bright +', code: 'RGB_VAI'},
-        {name: 'Effect Speed-', code: 'RGB_SPD'},
-        {name: 'Effect Speed+', code: 'RGB_SPI'},
-        {name: 'RGB Mode P', code: 'RGB_M_P', title: 'Plain'},
-        {name: 'RGB Mode B', code: 'RGB_M_B', title: 'Breathe'},
-        {name: 'RGB Mode R', code: 'RGB_M_R', title: 'Rainbow'},
-        {name: 'RGB Mode SW', code: 'RGB_M_SW', title: 'Swirl'},
-        {name: 'RGB Mode SN', code: 'RGB_M_SN', title: 'Snake'},
-        {name: 'RGB Mode K', code: 'RGB_M_K', title: 'Knight'},
-        {name: 'RGB Mode X', code: 'RGB_M_X', title: 'Xmas'},
-        {name: 'RGB Mode G', code: 'RGB_M_G', title: 'Gradient'},
+        ...qmkBacklightKeycodes,
+        ...legacyRGBKeycodes,
+        ...qmkRGBLightKeycodes,
+        ...qmkRGBMatrixKeycodes,
       ],
     },
     /*
@@ -1079,10 +1116,84 @@ export const categoriesForKeycodeModule = (
     default: ['basic', 'media', 'macro', 'layers', 'special'],
     [BuiltInKeycodeModule.WTLighting]: ['wt_lighting'],
     [BuiltInKeycodeModule.QMKLighting]: ['qmk_lighting'],
-  }[keycodeModule]);
+    [BuiltInKeycodeModule.QMKBacklightKeycodes]: ['qmk_lighting'],
+    [BuiltInKeycodeModule.QMKRGBLightKeycodes]: ['qmk_lighting'],
+    [BuiltInKeycodeModule.QMKRGBMatrixKeycodes]: ['qmk_lighting'],
+    [BuiltInKeycodeModule.QMKBacklightRGBLightKeycodes]: ['qmk_lighting'],
+  })[keycodeModule];
+
+export const getQMKLightingKeycodes = (
+  definition: VIADefinitionV3 | VIADefinitionV2,
+  protocol: number,
+): IKeycode[] => {
+  if ('lighting' in definition) {
+    return [...qmkBacklightKeycodes, ...legacyRGBKeycodes];
+  }
+
+  const modules = definition.keycodes ?? [];
+  const hasCompatibilityModule = modules.includes(
+    BuiltInKeycodeModule.QMKLighting,
+  );
+  const hasExplicitBacklightRGBLight = modules.includes(
+    BuiltInKeycodeModule.QMKBacklightRGBLightKeycodes,
+  );
+  const hasExplicitBacklight =
+    hasExplicitBacklightRGBLight ||
+    modules.includes(BuiltInKeycodeModule.QMKBacklightKeycodes);
+  const hasExplicitRGBLight =
+    hasExplicitBacklightRGBLight ||
+    modules.includes(BuiltInKeycodeModule.QMKRGBLightKeycodes);
+  const hasExplicitRGBMatrix = modules.includes(
+    BuiltInKeycodeModule.QMKRGBMatrixKeycodes,
+  );
+  const hasExplicitLighting =
+    hasExplicitBacklight || hasExplicitRGBLight || hasExplicitRGBMatrix;
+
+  if (protocol <= 12) {
+    return [
+      ...(hasCompatibilityModule || hasExplicitBacklight
+        ? qmkBacklightKeycodes
+        : []),
+      ...(hasCompatibilityModule ||
+      hasExplicitRGBLight ||
+      hasExplicitRGBMatrix
+        ? legacyRGBKeycodes
+        : []),
+    ];
+  }
+
+  if (hasExplicitLighting) {
+    return [
+      ...(hasExplicitBacklight ? qmkBacklightKeycodes : []),
+      ...(hasExplicitRGBLight ? qmkRGBLightKeycodes : []),
+      ...(hasExplicitRGBMatrix ? qmkRGBMatrixKeycodes : []),
+    ];
+  }
+
+  // qmk_lighting is a compatibility fallback. Only standardized menu IDs are
+  // a reliable feature signal; arbitrary custom menus must not be interpreted.
+  const menuIds = definition.menus.filter(
+    (menu): menu is string => typeof menu === 'string',
+  );
+  const hasBacklightRGBLightMenu = menuIds.includes('qmk_backlight_rgblight');
+  const hasRGBLightMenu =
+    hasBacklightRGBLightMenu || menuIds.includes('qmk_rgblight');
+  const hasRGBMatrixMenu = menuIds.includes('qmk_rgb_matrix');
+  const hasBacklightMenu =
+    hasBacklightRGBLightMenu || menuIds.includes('qmk_backlight');
+  const hasKnownLightingMenu =
+    hasRGBLightMenu || hasRGBMatrixMenu || hasBacklightMenu;
+
+  return [
+    ...(hasBacklightMenu ? qmkBacklightKeycodes : []),
+    ...(!hasKnownLightingMenu || hasRGBLightMenu ? qmkRGBLightKeycodes : []),
+    ...(!hasKnownLightingMenu || hasRGBMatrixMenu ? qmkRGBMatrixKeycodes : []),
+  ];
+};
 
 export const getKeycodesForKeyboard = (
   definition: VIADefinitionV3 | VIADefinitionV2,
+  protocol: number,
 ) => {
   // v2
   let includeList: string[] = [];
@@ -1092,8 +1203,8 @@ export const getKeycodesForKeyboard = (
       keycodes === KeycodeType.None
         ? []
         : keycodes === KeycodeType.QMK
-        ? categoriesForKeycodeModule(BuiltInKeycodeModule.QMKLighting)
-        : categoriesForKeycodeModule(BuiltInKeycodeModule.WTLighting),
+          ? categoriesForKeycodeModule(BuiltInKeycodeModule.QMKLighting)
+          : categoriesForKeycodeModule(BuiltInKeycodeModule.WTLighting),
     );
   } else {
     const {keycodes} = definition;
@@ -1101,7 +1212,11 @@ export const getKeycodesForKeyboard = (
   }
   return getKeycodes()
     .flatMap((keycodeMenu) =>
-      includeList.includes(keycodeMenu.id) ? keycodeMenu.keycodes : [],
+      includeList.includes(keycodeMenu.id)
+        ? keycodeMenu.id === 'qmk_lighting'
+          ? getQMKLightingKeycodes(definition, protocol)
+          : keycodeMenu.keycodes
+        : [],
     )
     .sort((a, b) => {
       if (a.code <= b.code) {

@@ -13,6 +13,7 @@ import {
 } from 'src/store/devicesSlice';
 import {getMacroAPI} from 'src/utils/macro-api';
 import {useTranslation} from 'react-i18next';
+import {getSelectedKeycodesVersion} from 'src/store/firmwareSlice';
 
 const ProgressBarContainer = styled.div`
   position: relative;
@@ -112,11 +113,12 @@ const BufferSizeUsage = () => {
   const bufferSize = useAppSelector(getMacroBufferSize);
   const connectedDevice = useAppSelector(getSelectedConnectedDevice);
   const api = useAppSelector(getSelectedKeyboardAPI);
+  const keycodesVersion = useAppSelector(getSelectedKeycodesVersion);
   if (!connectedDevice || !api) {
     return null;
   }
   const {protocol} = connectedDevice;
-  const macroApi = getMacroAPI(protocol, api);
+  const macroApi = getMacroAPI(protocol, keycodesVersion, api);
   const bytesUsed = macroApi.rawKeycodeSequencesToMacroBytes(ast).length;
   return (
     <ProgressBarContainer>

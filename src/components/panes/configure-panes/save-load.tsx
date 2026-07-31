@@ -24,6 +24,7 @@ import {
 } from 'src/store/devicesSlice';
 import {getExpressions, saveMacros} from 'src/store/macrosSlice';
 import {useTranslation} from 'react-i18next';
+import {getSelectedDefinitionName} from 'src/store/definitionNameSlice';
 
 type ViaSaveFile = {
   name: string;
@@ -52,6 +53,7 @@ export const Pane: FC = () => {
   const {t} = useTranslation();
   const dispatch = useAppDispatch();
   const selectedDefinition = useAppSelector(getSelectedDefinition);
+  const selectedDefinitionName = useAppSelector(getSelectedDefinitionName);
   const selectedDevice = useAppSelector(getSelectedConnectedDevice);
   const api = useAppSelector(getSelectedKeyboardAPI);
   const rawLayers = useAppSelector(getSelectedRawLayers);
@@ -111,7 +113,8 @@ export const Pane: FC = () => {
   };
 
   const saveLayout = async () => {
-    const {name, vendorProductId} = selectedDefinition;
+    const {vendorProductId} = selectedDefinition;
+    const name = selectedDefinitionName;
     const suggestedName =
       name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() + '.layout.json';
     try {

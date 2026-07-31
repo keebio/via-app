@@ -10,6 +10,7 @@ import designReducer from './designSlice';
 import errorsReducer from './errorsSlice';
 import {errorsListenerMiddleware} from './errorsListener';
 import firmwareReducer from './firmwareSlice';
+import definitionNameReducer from './definitionNameSlice';
 
 export const store = configureStore({
   reducer: {
@@ -23,6 +24,7 @@ export const store = configureStore({
     design: designReducer,
     errors: errorsReducer,
     firmware: firmwareReducer,
+    definitionName: definitionNameReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().prepend(errorsListenerMiddleware.middleware),

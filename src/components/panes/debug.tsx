@@ -1,4 +1,5 @@
 import type {VIADefinitionV2, VIADefinitionV3} from '@the-via/reader';
+import {resolveDefinitionName} from 'src/utils/definition-name';
 import {FC, useState} from 'react';
 import {useDispatch} from 'react-redux';
 import {
@@ -214,7 +215,7 @@ export const Debug: FC = () => {
   const [showMatrix, setShowMatrix] = useState(false);
 
   const options = allDefinitions.map(([, definition], index) => ({
-    label: definition.name,
+    label: resolveDefinitionName(definition.name),
     value: `${index}`,
   }));
   const entry = allDefinitions[selectedDefinitionIndex];
@@ -355,13 +356,13 @@ export const Debug: FC = () => {
                 return (
                   <IndentedControlRow key={device.path}>
                     <SubLabel>
-                      {
+                      {resolveDefinitionName(
                         (
                           definitionEntry[1] as
                             | VIADefinitionV2
                             | VIADefinitionV3
-                        ).name
-                      }
+                        ).name,
+                      )}
                     </SubLabel>
                     <Detail>
                       0x{device.vendorProductId.toString(16).toUpperCase()}
@@ -379,7 +380,7 @@ export const Debug: FC = () => {
             </ControlRow>
             {Object.values(localDefinitions).map(([id, definition], idx) => (
               <IndentedControlRow key={idx}>
-                <SubLabel>{definition.name}</SubLabel>
+                <SubLabel>{resolveDefinitionName(definition.name)}</SubLabel>
                 <Detail>
                   0x
                   {parseInt(id).toString(16).toUpperCase()}
@@ -397,7 +398,9 @@ export const Debug: FC = () => {
                 {Object.values(remoteDefinitions).map(
                   ([id, definition], idx) => (
                     <IndentedControlRow key={idx}>
-                      <SubLabel>{definition.name}</SubLabel>
+                      <SubLabel>
+                        {resolveDefinitionName(definition.name)}
+                      </SubLabel>
                       <Detail>
                         0x
                         {parseInt(id).toString(16).toUpperCase()}

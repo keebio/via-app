@@ -16,10 +16,12 @@ import {
   isVIADefinitionV3,
   isKeyboardDefinitionV3,
   DefinitionVersionMap,
+  BuiltInKeycodeModule,
   VIADefinitionV2,
   VIADefinitionV3,
 } from '@the-via/reader';
 import type {DefinitionVersion} from '@the-via/reader';
+import {resolveDefinitionName} from 'src/utils/definition-name';
 import {
   ControlRow,
   Label,
@@ -70,6 +72,12 @@ let hideDesignWarning =
 
 const DesignErrorMessage = styled(ErrorMessage)`
   margin: 0;
+  font-style: italic;
+`;
+
+const DesignWarningMessage = styled(ErrorMessage)`
+  margin: 0;
+  color: gold;
   font-style: italic;
 `;
 
@@ -134,6 +142,79 @@ const isVIADefinition = (
   return isVIADefinitionV2(definition) || isVIADefinitionV3(definition);
 };
 
+const formatDefinitionError = (
+  fileName: string,
+  error: {
+    instancePath?: string;
+    dataPath?: string;
+    schemaPath?: string;
+    keyword?: string;
+    message?: string;
+  },
+) => {
+  if (error.keyword === 'not' && error.schemaPath === '#/allOf/0/not') {
+    return `${fileName} keycodes: qmk_lighting cannot be combined with explicit QMK lighting keycode modules`;
+  }
+
+  const path = error.instancePath || error.dataPath;
+  return `${fileName} ${path ? path + ': ' : 'Object: '}${error.message}`;
+};
+
+const STANDARD_LIGHTING_MENU_IDS = [
+  'qmk_rgblight',
+  'qmk_backlight_rgblight',
+  'qmk_rgb_matrix',
+  'qmk_backlight',
+];
+
+const getDefinitionWarnings = (
+  definition: VIADefinitionV2 | VIADefinitionV3,
+) => {
+  if ('lighting' in definition) {
+    return [];
+  }
+
+  const modules = definition.keycodes ?? [];
+  const menuIds = definition.menus.filter(
+    (menu): menu is string => typeof menu === 'string',
+  );
+  const warnings: string[] = [];
+
+  if (
+    modules.includes(BuiltInKeycodeModule.QMKLighting) &&
+    !menuIds.some((menuId) => STANDARD_LIGHTING_MENU_IDS.includes(menuId))
+  ) {
+    warnings.push(
+      'This definition uses qmk_lighting, but its lighting subsystem cannot be determined from standardized menus. On VIA protocol 13, both UG_* and RM_* keycodes will be shown. Consider using an explicit QMK lighting keycode module.',
+    );
+  }
+
+  const hasBacklightRGBLightModule = modules.includes(
+    BuiltInKeycodeModule.QMKBacklightRGBLightKeycodes,
+  );
+  const hasRGBLightModule =
+    hasBacklightRGBLightModule ||
+    modules.includes(BuiltInKeycodeModule.QMKRGBLightKeycodes);
+  const hasRGBMatrixModule = modules.includes(
+    BuiltInKeycodeModule.QMKRGBMatrixKeycodes,
+  );
+  const hasRGBLightMenu =
+    menuIds.includes('qmk_rgblight') ||
+    menuIds.includes('qmk_backlight_rgblight');
+  const hasRGBMatrixMenu = menuIds.includes('qmk_rgb_matrix');
+  const hasSubsystemMismatch =
+    (hasRGBLightMenu && hasRGBMatrixModule && !hasRGBLightModule) ||
+    (hasRGBMatrixMenu && hasRGBLightModule && !hasRGBMatrixModule);
+
+  if (hasSubsystemMismatch) {
+    warnings.push(
+      'The selected QMK lighting keycode module does not match the standardized lighting menu. Verify whether this keyboard uses RGBLight or RGB Matrix.',
+    );
+  }
+
+  return warnings;
+};
+
 // TODO: move this inside function component and then use the closured dispatch?
 function importDefinitions(
   files: File[],
@@ -162,8 +243,8 @@ function importDefinitions(
                   ? res
                   : keyboardDefinitionV2ToVIADefinitionV2(res)
                 : isVIADefinitionV3(res)
-                ? res
-                : keyboardDefinitionV3ToVIADefinitionV3(res);
+                  ? res
+                  : keyboardDefinitionV3ToVIADefinitionV3(res);
             return definition;
           } else {
             errors = (
@@ -174,15 +255,7 @@ function importDefinitions(
                 : isKeyboardDefinitionV3.errors ||
                   isVIADefinitionV3.errors ||
                   []
-            ).map(
-              (e) => {
-                const path =
-                  (e as {instancePath?: string; dataPath?: string}).instancePath ||
-                  (e as {instancePath?: string; dataPath?: string}).dataPath;
-
-                return `${fileName} ${path ? path + ': ' : 'Object: '}${e.message}`;
-              },
-            );
+            ).map((e) => formatDefinitionError(fileName, e));
           }
         } catch (err: any) {
           if (err.name) {
@@ -250,7 +323,7 @@ export const DesignTab: FC = () => {
   );
 
   const options = versionDefinitions.map((definitionMap, index) => ({
-    label: definitionMap[definitionVersion].name,
+    label: resolveDefinitionName(definitionMap[definitionVersion].name),
     value: index.toString(),
   }));
 
@@ -258,6 +331,10 @@ export const DesignTab: FC = () => {
   const definition =
     versionDefinitions[selectedDefinitionIndex] &&
     versionDefinitions[selectedDefinitionIndex][definitionVersion];
+  const definitionWarnings = useMemo(
+    () => (definition ? getDefinitionWarnings(definition) : []),
+    [definition],
+  );
   const uploadButton = useRef<HTMLInputElement>();
   return (
     <DesignPane
@@ -395,8 +472,13 @@ export const DesignTab: FC = () => {
               </ControlRow>
             )}
             {errors.map((error: string) => (
-              <IndentedControlRow>
+              <IndentedControlRow key={error}>
                 <DesignErrorMessage>{error}</DesignErrorMessage>
+              </IndentedControlRow>
+            ))}
+            {definitionWarnings.map((warning) => (
+              <IndentedControlRow key={warning}>
+                <DesignWarningMessage>{warning}</DesignWarningMessage>
               </IndentedControlRow>
             ))}
             <ControlRow>
@@ -410,7 +492,9 @@ export const DesignTab: FC = () => {
                 <IndentedControlRow
                   key={`${definitionVersion}-${definition[definitionVersion].vendorProductId}`}
                 >
-                  <SubLabel>{definition[definitionVersion].name}</SubLabel>
+                  <SubLabel>
+                    {resolveDefinitionName(definition[definitionVersion].name)}
+                  </SubLabel>
                   <Detail>
                     {formatNumberAsHex(
                       definition[definitionVersion].vendorProductId,

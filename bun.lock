@@ -15,7 +15,7 @@
         "@react-three/fiber": "^8.17.9",
         "@reduxjs/toolkit": "^2.3.0",
         "@the-via/pelpi": "^0.0.3",
-        "@the-via/reader": "^1.14.1",
+        "@the-via/reader": "^1.14.3",
         "@webscopeio/react-textarea-autocomplete": "^4.9.2",
         "downshift": "^7.2.1",
         "i18next": "^23.10.1",
@@ -459,7 +459,7 @@
 
     "@the-via/pelpi": ["@the-via/pelpi@0.0.3", "", { "dependencies": { "chalk": "^4.1.0" } }, "sha512-an6Flsgza6BuvuN+hcD+clefZDc7ncQT1iyEJOLcQc8VunRMwXy+1jsoxAuJLJKZGcGh17EKuKjQK4a6zUgUAg=="],
 
-    "@the-via/reader": ["@the-via/reader@1.14.1", "", { "dependencies": { "ajv": "^8.18.0", "ajv-formats": "^3.0.1", "invariant": "^2.2.4" } }, "sha512-3avOq2x/kJmEZkJIj87SQDnGXIEQ4rHRO4T3vDF1Kcy3F2UqxYvpuPTdLOs8miZqX6bgpsJKMCQFFNWdtmsoAA=="],
+    "@the-via/reader": ["@the-via/reader@1.14.3", "", { "dependencies": { "ajv": "^8.18.0", "ajv-formats": "^3.0.1", "invariant": "^2.2.4" } }, "sha512-dDjmq8TcaGkPWFC98NGJ1Gs+JDVOBOnpfUBjCWQP/w4CURWzkBq+EL6eNWDwrW+y/5eOOI5unsEsD2lqS3BNYA=="],
 
     "@tsconfig/node10": ["@tsconfig/node10@1.0.12", "", {}, "sha512-UCYBaeFvM11aU2y3YPZ//O5Rhj+xKyzy7mvcIoAjASbigy8mHMryP5cK7dgjlz2hWxh1g5pLw084E0a/wlUSFQ=="],
 

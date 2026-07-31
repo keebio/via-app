@@ -45,7 +45,9 @@ import {createRetry} from 'src/utils/retry';
 import {extractDeviceInfo, logAppError} from './errorsSlice';
 import {tryForgetDevice} from 'src/shims/node-hid';
 import {isAuthorizedDeviceConnected} from 'src/utils/type-predicates';
-import {loadFirmwareVersion} from './firmwareSlice';
+import {loadFirmwareVersion, loadKeycodesVersion} from './firmwareSlice';
+import {loadDefinitionName} from './definitionNameSlice';
+import {KeycodesVersionProtocolError} from 'src/utils/keycodes-version';
 
 const selectConnectedDeviceRetry = createRetry(8, 100);
 
@@ -67,6 +69,7 @@ const selectConnectedDevice =
   async (dispatch) => {
     const deviceInfo = extractDeviceInfo(connectedDevice);
     try {
+      await dispatch(loadKeycodesVersion(connectedDevice));
       dispatch(selectDevice(connectedDevice));
       // John you drongo, don't trust the compiler, dispatches are totes awaitable for async thunks
       await dispatch(loadMacros(connectedDevice));
@@ -78,6 +81,7 @@ const selectConnectedDevice =
           // John you drongo, don't trust the compiler, dispatches are totes awaitable for async thunks
           await dispatch(updateLightingData(connectedDevice));
         } else if (protocol >= 11) {
+          await dispatch(loadDefinitionName(connectedDevice));
           await dispatch(loadFirmwareVersion(connectedDevice));
           // John you drongo, don't trust the compiler, dispatches are totes awaitable for async thunks
           await dispatch(updateV3MenuData(connectedDevice));
@@ -96,6 +100,10 @@ const selectConnectedDevice =
       dispatch(markDeviceReady(connectedDevice.path));
       selectConnectedDeviceRetry.clear();
     } catch (e) {
+      if (e instanceof KeycodesVersionProtocolError) {
+        selectConnectedDeviceRetry.clear();
+        return;
+      }
       if (selectConnectedDeviceRetry.retriesLeft()) {
         dispatch(
           logAppError({
@@ -162,8 +170,13 @@ export const reloadConnectedDevices =
       updateInvalidProtocolDevices(
         recognisedDevicesWithBadProtocol.reduce<Record<string, Device>>(
           (devices, device) => {
-            const {path, productId, vendorId, productName, interface: intf} =
-              device;
+            const {
+              path,
+              productId,
+              vendorId,
+              productName,
+              interface: intf,
+            } = device;
             devices[path] = {
               path,
               productId,

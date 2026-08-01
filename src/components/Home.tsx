@@ -38,6 +38,7 @@ import {KeyboardValue} from 'src/utils/keyboard-api';
 import {useTranslation} from 'react-i18next';
 import {MessageDialog} from './inputs/message-dialog';
 import {formatNumberAsHex} from 'src/utils/format';
+import {isLinux} from 'src/utils/running-context';
 
 const ErrorHome = styled.div`
   background: var(--bg_gradient);
@@ -75,9 +76,26 @@ const UsbErrorHeading = styled.h1`
   margin: 1rem 0 0;
 `;
 
-const UsbErrorWebHIDLink = styled.a`
+const ExternalLink = styled.a`
   text-decoration: underline;
   color: var(--color_label-highlighted);
+`;
+
+const UdevHint = styled.div`
+  margin: 1.25rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border_color_cell);
+  border-left: 4px solid var(--color_accent);
+  border-radius: 4px;
+  background: var(--bg_menu);
+  font-size: 0.95em;
+  text-align: left;
+`;
+
+const UdevHintHeading = styled.div`
+  font-weight: 600;
+  color: var(--color_label-highlighted);
+  margin-bottom: 0.25rem;
 `;
 
 const timeoutRepeater =
@@ -202,12 +220,12 @@ export const Home: React.FC<HomeProps> = (props) => {
         <p>
           Looks like there was a problem getting USB detection working. Right
           now, we only support{' '}
-          <UsbErrorWebHIDLink
+          <ExternalLink
             href="https://caniuse.com/?search=webhid"
             target="_blank"
           >
             browsers that have WebHID enabled
-          </UsbErrorWebHIDLink>
+          </ExternalLink>
           , so make sure yours is compatible before trying again.
         </p>
       </UsbError>
@@ -229,6 +247,23 @@ export const Home: React.FC<HomeProps> = (props) => {
               vid: formatNumberAsHex(invalidProtocolDevice.vendorId, 4),
               pid: formatNumberAsHex(invalidProtocolDevice.productId, 4),
             },
+          )}
+          {isLinux && (
+            <UdevHint>
+              <UdevHintHeading>
+                {t('Using Linux? This is most likely a udev rules problem.')}
+              </UdevHintHeading>
+              {t(
+                'Linux blocks access to keyboards unless a udev rule grants permission, so VIA can see the device but cannot talk to it. Install the udev rules, then unplug the keyboard, plug it back in, and reload this page.',
+              )}{' '}
+              <ExternalLink
+                href="https://get.vial.today/manual/linux-udev.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                {t('Linux udev rules setup guide →')}
+              </ExternalLink>
+            </UdevHint>
           )}
         </MessageDialog>
       )}

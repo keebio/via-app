@@ -387,7 +387,13 @@ export const updateV3MenuData =
       );
       console.debug(maxLedIndex, 'maxLedIndex');
 
-      if (maxLedIndex >= 0) {
+      // Skip when the palette is firmware-gated away: older firmware doesn't
+      // implement the per-key command and the read would fail
+      const hasPalette = menus.some((menu) =>
+        hasColorPalette(menu, firmwareVersion),
+      );
+
+      if (maxLedIndex >= 0 && hasPalette) {
         // Ask for PerKeyRGBValues -- hardcoded to 62
         const perKeyRGB = await api.getPerKeyRGBMatrix(
           Array(maxLedIndex + 1)
@@ -424,6 +430,41 @@ const isFirmwareOnlyExpr = (showIf: string): boolean => {
   }
 };
 
+// Returns true for a firmware-gated branch hidden at this firmware version
+const isFirmwarePruned = (
+  menuOrControls: any,
+  firmwareVersion?: number,
+): boolean =>
+  firmwareVersion !== undefined &&
+  'showIf' in menuOrControls &&
+  typeof menuOrControls.showIf === 'string' &&
+  isFirmwareOnlyExpr(menuOrControls.showIf) &&
+  !evalExpr(menuOrControls.showIf, {id_firmware_version: [firmwareVersion]});
+
+// Returns true if a color-palette control survives firmware pruning
+const hasColorPalette = (
+  menuOrControls: any,
+  firmwareVersion?: number,
+): boolean => {
+  if (
+    typeof menuOrControls !== 'object' ||
+    menuOrControls === null ||
+    isFirmwarePruned(menuOrControls, firmwareVersion)
+  ) {
+    return false;
+  }
+  if (menuOrControls.type === 'color-palette') {
+    return true;
+  }
+  return (
+    !('type' in menuOrControls) &&
+    Array.isArray(menuOrControls.content) &&
+    menuOrControls.content.some((item: any) =>
+      hasColorPalette(item, firmwareVersion),
+    )
+  );
+};
+
 // TODO: properly type the input and add proper type guards
 const extractCommands = (
   menuOrControls: any,
@@ -433,13 +474,7 @@ const extractCommands = (
     return [];
   }
   // Prune firmware-gated branches early when firmware version is known
-  if (
-    firmwareVersion !== undefined &&
-    'showIf' in menuOrControls &&
-    typeof menuOrControls.showIf === 'string' &&
-    isFirmwareOnlyExpr(menuOrControls.showIf) &&
-    !evalExpr(menuOrControls.showIf, {id_firmware_version: [firmwareVersion]})
-  ) {
+  if (isFirmwarePruned(menuOrControls, firmwareVersion)) {
     return [];
   }
   return 'type' in menuOrControls

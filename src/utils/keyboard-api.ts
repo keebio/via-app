@@ -17,6 +17,8 @@ export {KeyboardValue} from './keyboard-values';
 
 const COMMAND_START = 0x00; // This is really a HID Report ID
 const PER_KEY_RGB_CHANNEL_COMMAND = [0, 1];
+// Per-key brightness (0 = off); setting hue/sat resets it to full in firmware
+const PER_KEY_VAL_CHANNEL_COMMAND = [0, 3];
 
 enum APICommand {
   GET_PROTOCOL_VERSION = 0x01,
@@ -442,6 +444,37 @@ export class KeyboardAPI {
       ),
     );
     return res.map((r) => [...r.slice(5, 7)]);
+  }
+
+  async getPerKeyRGBValues(ledIndexMapping: number[]): Promise<number[]> {
+    const res = await Promise.all(
+      ledIndexMapping.map((ledIndex) =>
+        this.hidCommand(
+          APICommand.CUSTOM_MENU_GET_VALUE,
+          [
+            ...PER_KEY_VAL_CHANNEL_COMMAND,
+            ledIndex,
+            1, // count
+          ],
+          'CUSTOM_MENU_GET_VALUE',
+          false, // optional: firmware without per-key brightness rejects it
+        ),
+      ),
+    );
+    return res.map((r) => r[5]);
+  }
+
+  async setPerKeyRGBValue(index: number, val: number): Promise<void> {
+    await this.hidCommand(
+      APICommand.CUSTOM_MENU_SET_VALUE,
+      [
+        ...PER_KEY_VAL_CHANNEL_COMMAND,
+        index,
+        1, // count
+        val,
+      ],
+      'CUSTOM_MENU_SET_VALUE',
+    );
   }
 
   async setPerKeyRGBMatrix(

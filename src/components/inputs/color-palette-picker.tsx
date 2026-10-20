@@ -1,11 +1,18 @@
 import {Color} from '@the-via/reader';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useDispatch} from 'react-redux';
-import {setSelectedPaletteColor} from 'src/store/keymapSlice';
+import {useAppSelector} from 'src/store/hooks';
+import {
+  getSelected256PaletteColor,
+  getSelectedPaletteBrightness,
+  setSelectedPaletteBrightness,
+  setSelectedPaletteColor,
+} from 'src/store/keymapSlice';
 import {updateShowKeyPainter} from 'src/store/menusSlice';
 import {getRGB} from 'src/utils/color-math';
 import styled from 'styled-components';
 import {ColorPicker} from './color-picker';
+import {PainterColorPicker} from './painter-color-picker';
 
 type Props = {
   color: Color;
@@ -42,8 +49,13 @@ const PreviousColorOption = styled.div<{$selected: boolean}>`
 
 export const ConnectedColorPalettePicker: React.FC = () => {
   const dispatch = useDispatch();
-  const setColor = useCallback(
-    (hue: number, sat: number) => dispatch(setSelectedPaletteColor([hue, sat])),
+  const [hue, sat] = useAppSelector(getSelected256PaletteColor);
+  const brightness = useAppSelector(getSelectedPaletteBrightness);
+  const onChange = useCallback(
+    (hue: number, sat: number, brightness: number) => {
+      dispatch(setSelectedPaletteColor([hue, sat]));
+      dispatch(setSelectedPaletteBrightness(brightness));
+    },
     [dispatch],
   );
   useEffect(() => {
@@ -52,7 +64,14 @@ export const ConnectedColorPalettePicker: React.FC = () => {
       dispatch(updateShowKeyPainter(false));
     };
   });
-  return <ColorPalettePicker color={[0, 0]} setColor={setColor} />;
+  return (
+    <PainterColorPicker
+      hue={hue}
+      sat={sat}
+      brightness={brightness}
+      onChange={onChange}
+    />
+  );
 };
 export const ColorPalettePicker: React.FC<{
   color: [number, number];

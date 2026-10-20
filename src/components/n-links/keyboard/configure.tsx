@@ -7,6 +7,7 @@ import {
 import {useAppSelector} from 'src/store/hooks';
 import {
   getSelectedKeymap,
+  getSelectedPaletteBrightness,
   getSelectedPaletteColor,
 } from 'src/store/keymapSlice';
 import {getShowKeyPainter} from 'src/store/menusSlice';
@@ -35,9 +36,13 @@ export const ConfigureKeyboard = (props: {
   const definition = useAppSelector(getSelectedDefinition);
   const showKeyPainter = useAppSelector(getShowKeyPainter);
   const selectedPaletteColor = useAppSelector(getSelectedPaletteColor);
+  const selectedPaletteBrightness = useAppSelector(
+    getSelectedPaletteBrightness,
+  );
   const {keyColors, onKeycapPointerDown, onKeycapPointerOver} = useColorPainter(
     keys,
     selectedPaletteColor,
+    selectedPaletteBrightness,
   );
   const [normalizedKeys, normalizedColors] = useMemo(() => {
     // skip keys without colors on it

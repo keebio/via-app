@@ -35,12 +35,14 @@ const getPosition = (x: number, y: number): [number, number, number] => [
   0,
 ];
 const getRGBArray = (keyColors: number[][]) => {
-  return keyColors.map(([hue, sat]) => {
+  return keyColors.map(([hue, sat, val = 1]) => {
     const rgbStr = getRGB({
       hue: Math.round((255 * hue) / 360),
       sat: Math.round(255 * sat),
     });
-    const srgbStr = `#${new Color(rgbStr).getHexString()}`;
+    const srgbStr = `#${new Color(rgbStr)
+      .multiplyScalar(0.15 + 0.85 * val)
+      .getHexString()}`;
     const keyColor = {c: srgbStr, t: srgbStr};
     return keyColor;
   });
@@ -71,7 +73,13 @@ export const KeyGroup: React.FC<KeyGroupProps<React.MouseEvent>> = (props) => {
     props.onKeycapPointerOver,
   ]);
   const labels = useMemo(() => {
-    return getLabels(props, macroExpressions, basicKeyToByte, byteToKey, keycodeLUT);
+    return getLabels(
+      props,
+      macroExpressions,
+      basicKeyToByte,
+      byteToKey,
+      keycodeLUT,
+    );
   }, [keys, props.matrixKeycodes, macros, props.definition, keycodeLUT]);
   const {width, height} = calculateKeyboardFrameDimensions(keys);
   const elems = useMemo(() => {

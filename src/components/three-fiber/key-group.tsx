@@ -6,7 +6,10 @@ import {getBasicKeyToByte} from 'src/store/definitionsSlice';
 import {useAppDispatch, useAppSelector} from 'src/store/hooks';
 import {getSelectedKey} from 'src/store/keymapSlice';
 import {getExpressions} from 'src/store/macrosSlice';
-import {getHostKeyboardLayout, getSelectedSRGBTheme} from 'src/store/settingsSlice';
+import {
+  getHostKeyboardLayout,
+  getSelectedSRGBTheme,
+} from 'src/store/settingsSlice';
 import {keymapExtras} from 'src/utils/keymap-extras';
 import {KeyGroupProps, KeysKeys} from 'src/types/keyboard-rendering';
 import {getRGB} from 'src/utils/color-math';
@@ -25,12 +28,13 @@ import {
 import {Keycap} from './unit-key/keycap';
 
 const getSRGBArray = (keyColors: number[][]) => {
-  return keyColors.map(([hue, sat]) => {
+  return keyColors.map(([hue, sat, val = 1]) => {
     const rgbStr = getRGB({
       hue: Math.round((255 * hue) / 360),
       sat: Math.round(255 * sat),
     });
     const srgbStr = `#${new Color(rgbStr)
+      .multiplyScalar(0.15 + 0.85 * val)
       .convertSRGBToLinear()
       .getHexString()}`;
     const keyColor = {c: srgbStr, t: srgbStr};
@@ -70,7 +74,13 @@ export const KeyGroup: React.FC<KeyGroupProps<ThreeEvent<MouseEvent>>> = (
     props.onKeycapPointerOver,
   ]);
   const labels = useMemo(() => {
-    return getLabels(props, macroExpressions, basicKeyToByte, byteToKey, keycodeLUT);
+    return getLabels(
+      props,
+      macroExpressions,
+      basicKeyToByte,
+      byteToKey,
+      keycodeLUT,
+    );
   }, [keys, props.matrixKeycodes, macros, props.definition, keycodeLUT]);
   const {width, height} = calculateKeyboardFrameDimensions(keys);
   const elems = useMemo(() => {

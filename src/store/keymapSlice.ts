@@ -26,6 +26,8 @@ type KeymapState = {
   selectedKey: number | null;
   configureKeyboardIsSelectable: boolean;
   selectedPaletteColor: [number, number];
+  // Brightness the key painter applies (0-255); 0 turns the LED off
+  selectedPaletteBrightness: number;
 };
 
 const initialState: KeymapState = {
@@ -35,6 +37,7 @@ const initialState: KeymapState = {
   selectedKey: null,
   configureKeyboardIsSelectable: false,
   selectedPaletteColor: [0, 0],
+  selectedPaletteBrightness: 255,
 };
 
 const keymapSlice = createSlice({
@@ -46,6 +49,9 @@ const keymapSlice = createSlice({
       action: PayloadAction<[number, number]>,
     ) => {
       state.selectedPaletteColor = action.payload;
+    },
+    setSelectedPaletteBrightness: (state, action: PayloadAction<number>) => {
+      state.selectedPaletteBrightness = action.payload;
     },
     setNumberOfLayers: (state, action: PayloadAction<number>) => {
       state.numberOfLayers = action.payload;
@@ -125,6 +131,7 @@ export const {
   saveKeymapSuccess,
   setConfigureKeyboardIsSelectable,
   setSelectedPaletteColor,
+  setSelectedPaletteBrightness,
 } = keymapSlice.actions;
 
 export default keymapSlice.reducer;
@@ -209,6 +216,8 @@ export const getSelectedLayerIndex = (state: RootState) =>
   state.keymap.selectedLayerIndex;
 export const getSelected256PaletteColor = (state: RootState) =>
   state.keymap.selectedPaletteColor;
+export const getSelectedPaletteBrightness = (state: RootState) =>
+  state.keymap.selectedPaletteBrightness;
 export const getSelectedPaletteColor = createSelector(
   getSelected256PaletteColor,
   ([hue, sat]) => {

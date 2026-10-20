@@ -400,13 +400,15 @@ export const updateV3MenuData =
       );
 
       if (maxLedIndex >= 0 && hasPalette) {
-        // Ask for PerKeyRGBValues -- hardcoded to 62
-        const perKeyRGB = await api.getPerKeyRGBMatrix(
-          Array(maxLedIndex + 1)
-            .fill(0)
-            .map((_, i) => i),
-        );
-        props.__perKeyRGB = perKeyRGB;
+        const ledIndices = Array(maxLedIndex + 1)
+          .fill(0)
+          .map((_, i) => i);
+        props.__perKeyRGB = await api.getPerKeyRGBMatrix(ledIndices);
+        try {
+          props.__perKeyVal = await api.getPerKeyRGBValues(ledIndices);
+        } catch {
+          // Firmware without per-key brightness: every LED is at full
+        }
       }
 
       dispatch(

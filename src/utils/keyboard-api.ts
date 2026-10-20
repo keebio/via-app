@@ -19,6 +19,10 @@ const COMMAND_START = 0x00; // This is really a HID Report ID
 const PER_KEY_RGB_CHANNEL_COMMAND = [0, 1];
 // Per-key brightness (0 = off); setting hue/sat resets it to full in firmware
 const PER_KEY_VAL_CHANNEL_COMMAND = [0, 3];
+// Lighting layers: [hue, sat, val, transparent] per LED on a given layer
+const PER_KEY_LAYER_CHANNEL_COMMAND = [0, 4];
+const PER_KEY_LAYER_COUNT_CHANNEL_COMMAND = [0, 5];
+const PER_KEY_LAYER_LEDS_PER_PACKET = 6;
 
 enum APICommand {
   GET_PROTOCOL_VERSION = 0x01,
@@ -462,6 +466,59 @@ export class KeyboardAPI {
       ),
     );
     return res.map((r) => r[5]);
+  }
+
+  // Rejects on firmware without lighting layers
+  async getPerKeyLayerCount(): Promise<number> {
+    const res = await this.hidCommand(
+      APICommand.CUSTOM_MENU_GET_VALUE,
+      PER_KEY_LAYER_COUNT_CHANNEL_COMMAND,
+      'CUSTOM_MENU_GET_VALUE',
+      false,
+    );
+    return res[3];
+  }
+
+  // Returns [hue, sat, val, transparent] for LEDs 0..ledCount-1 on a layer
+  async getPerKeyLayer(layer: number, ledCount: number): Promise<number[][]> {
+    const starts = Array.from(
+      {length: Math.ceil(ledCount / PER_KEY_LAYER_LEDS_PER_PACKET)},
+      (_, i) => i * PER_KEY_LAYER_LEDS_PER_PACKET,
+    );
+    const res = await Promise.all(
+      starts.map((start) => {
+        const count = Math.min(PER_KEY_LAYER_LEDS_PER_PACKET, ledCount - start);
+        return this.hidCommand(
+          APICommand.CUSTOM_MENU_GET_VALUE,
+          [...PER_KEY_LAYER_CHANNEL_COMMAND, layer, start, count],
+          'CUSTOM_MENU_GET_VALUE',
+        ).then((r) =>
+          Array.from({length: count}, (_, i) => r.slice(6 + i * 4, 10 + i * 4)),
+        );
+      }),
+    );
+    return res.flat();
+  }
+
+  async setPerKeyLayerLED(
+    layer: number,
+    index: number,
+    [hue, sat, val, transparent]: number[],
+  ): Promise<void> {
+    await this.hidCommand(
+      APICommand.CUSTOM_MENU_SET_VALUE,
+      [
+        ...PER_KEY_LAYER_CHANNEL_COMMAND,
+        layer,
+        index,
+        1, // count
+        hue,
+        sat,
+        val,
+        transparent,
+      ],
+      'CUSTOM_MENU_SET_VALUE',
+    );
   }
 
   async setPerKeyRGBValue(index: number, val: number): Promise<void> {

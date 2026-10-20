@@ -8,6 +8,12 @@ type Props = {
   sat: number;
   brightness: number;
   onChange: (hue: number, sat: number, brightness: number) => void;
+  // Lighting layers, on firmware that has them: higher layers overlay layer 0,
+  // and keys painted transparent show the layer below
+  layerCount?: number;
+  layer?: number;
+  transparent?: boolean;
+  onTransparent?: () => void;
 };
 
 const PRESETS: {label: string; hue: number; sat: number}[] = [
@@ -47,7 +53,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   row-gap: 10px;
-  width: 220px;
+  width: 240px;
 `;
 
 const Area = styled.div`
@@ -123,6 +129,16 @@ const OffSwatch = styled(Swatch)`
   );
 `;
 
+const LayerLabel = styled.span`
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--color_label);
+`;
+
+const TransparentSwatch = styled(Swatch)`
+  background: repeating-conic-gradient(#999 0 25%, #eee 0 50%) 50% / 10px 10px;
+`;
+
 const Preview = styled.div`
   width: 28px;
   height: 28px;
@@ -164,7 +180,16 @@ const useDrag = (onMove: (x: number, y: number) => void) =>
   );
 
 export const PainterColorPicker: React.FC<Props> = (props) => {
-  const {hue, sat, brightness, onChange} = props;
+  const {
+    hue,
+    sat,
+    brightness,
+    onChange,
+    layerCount = 1,
+    layer = 0,
+    transparent = false,
+    onTransparent,
+  } = props;
   // Brightness to return to when a preset is picked after "Off"
   const lastOn = useRef(brightness || 255);
   if (brightness > 0) {
@@ -190,9 +215,16 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
     ),
   );
 
-  const isOff = brightness === 0;
+  const isOff = !transparent && brightness === 0;
   return (
     <Container>
+      {layerCount > 1 && (
+        <LayerLabel>
+          {layer === 0
+            ? 'Painting base layer'
+            : `Painting layer ${layer} overlay`}
+        </LayerLabel>
+      )}
       <Area
         title="Saturation (left to right), brightness (top to bottom; bottom is off)"
         onPointerDown={onAreaPointerDown}
@@ -227,6 +259,7 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
             title={preset.label}
             $selected={
               !isOff &&
+              !transparent &&
               sat === preset.sat &&
               (preset.sat === 0 || hue === preset.hue)
             }
@@ -241,15 +274,30 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
           $selected={isOff}
           onClick={() => onChange(hue, sat, 0)}
         />
+        {layer > 0 && onTransparent && (
+          <TransparentSwatch
+            title="Transparent: show the layer below"
+            $selected={transparent}
+            onClick={onTransparent}
+          />
+        )}
       </Row>
       <Row>
-        <Preview style={{background: hsvToCss(hue, sat, brightness)}} />
+        <Preview
+          style={{
+            background: transparent
+              ? 'repeating-conic-gradient(#999 0 25%, #eee 0 50%) 50% / 10px 10px'
+              : hsvToCss(hue, sat, brightness),
+          }}
+        />
         <Readout>
-          {isOff
-            ? 'Off'
-            : `H ${Math.round((hue / 255) * 360)}°  S ${Math.round(
-                (sat / 255) * 100,
-              )}%  B ${Math.round((brightness / 255) * 100)}%`}
+          {transparent
+            ? 'Transparent'
+            : isOff
+              ? 'Off'
+              : `H ${Math.round((hue / 255) * 360)}°  S ${Math.round(
+                  (sat / 255) * 100,
+                )}%  B ${Math.round((brightness / 255) * 100)}%`}
         </Readout>
       </Row>
     </Container>

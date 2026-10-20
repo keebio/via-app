@@ -37,7 +37,8 @@ import type {AppThunk, RootState} from './index';
 import {getSelectedFirmwareVersion} from './firmwareSlice';
 
 type CustomMenuData = {
-  [commandName: string]: number[] | number[][];
+  // number[][][] holds per-key lighting layers (__perKeyLayers)
+  [commandName: string]: number[] | number[][] | number[][][];
 };
 type CustomMenuDataMap = {[devicePath: string]: CustomMenuData};
 
@@ -403,11 +404,25 @@ export const updateV3MenuData =
         const ledIndices = Array(maxLedIndex + 1)
           .fill(0)
           .map((_, i) => i);
-        props.__perKeyRGB = await api.getPerKeyRGBMatrix(ledIndices);
+        let layerCount = 0;
         try {
-          props.__perKeyVal = await api.getPerKeyRGBValues(ledIndices);
+          layerCount = await api.getPerKeyLayerCount();
         } catch {
-          // Firmware without per-key brightness: every LED is at full
+          // Firmware without lighting layers: use the single-layer commands
+        }
+        if (layerCount > 0) {
+          const layers = [];
+          for (let layer = 0; layer < layerCount; layer++) {
+            layers.push(await api.getPerKeyLayer(layer, maxLedIndex + 1));
+          }
+          props.__perKeyLayers = layers;
+        } else {
+          props.__perKeyRGB = await api.getPerKeyRGBMatrix(ledIndices);
+          try {
+            props.__perKeyVal = await api.getPerKeyRGBValues(ledIndices);
+          } catch {
+            // Firmware without per-key brightness: every LED is at full
+          }
         }
       }
 

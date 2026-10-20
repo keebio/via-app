@@ -22,8 +22,8 @@ const getMacroData = ({
   label && label.length > 15
     ? label
     : macroExpression && macroExpression.length
-    ? macroExpression
-    : null;
+      ? macroExpression
+      : null;
 
 const paintEncoder = (
   canvas: HTMLCanvasElement,
@@ -270,6 +270,7 @@ const paintKeycap = (
   legendColor: string,
   label: any,
   textureOffsetX: number,
+  transparent = false,
 ) => {
   const textureRects: TextureRects = calculateTextureRects(
     widthMultiplier,
@@ -291,6 +292,28 @@ const paintKeycap = (
   // Fill the canvas with the keycap background color
   context.fillStyle = bgColor;
   context.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Key painter: checkerboard over keys transparent on the layer being painted
+  // Only the top face, with ~5 squares across a 1u key to match the 2D view
+  if (transparent) {
+    const {bl, tr} = textureRects.faceRect;
+    const left = bl.x * canvas.width;
+    const top = (1 - tr.y) * canvas.height;
+    const width = (tr.x - bl.x) * canvas.width;
+    const height = (tr.y - bl.y) * canvas.height;
+    const square = width / widthMultiplier / 5;
+    context.save();
+    context.beginPath();
+    context.rect(left, top, width, height);
+    context.clip();
+    context.fillStyle = 'rgba(255,255,255,0.12)';
+    for (let x = 0; x * square < width; x++) {
+      for (let y = x % 2; y * square < height; y += 2) {
+        context.fillRect(left + x * square, top + y * square, square, square);
+      }
+    }
+    context.restore();
+  }
 
   // Leaving this here for future maintenance.
   // This draws lines around the keycap edge and the top face edge,
@@ -344,6 +367,7 @@ export const Keycap: React.FC<ThreeFiberKeycapProps> = React.memo((props) => {
           color.t,
           label,
           textureOffsetX,
+          color.transparent,
         );
         setOverflowsTexture(!!doesOverflow);
       }
@@ -357,9 +381,15 @@ export const Keycap: React.FC<ThreeFiberKeycapProps> = React.memo((props) => {
     scale[1],
     color && color.t,
     color && color.c,
+    color && color.transparent,
     shouldRotate,
   ]);
-  useEffect(redraw, [label && label.key, color && color.c, color && color.t]);
+  useEffect(redraw, [
+    label && label.key,
+    color && color.c,
+    color && color.t,
+    color && color.transparent,
+  ]);
 
   const glow = useSpring({
     config: {duration: 800},
@@ -377,8 +407,8 @@ export const Keycap: React.FC<ThreeFiberKeycapProps> = React.memo((props) => {
         ? KeycapState.Pressed
         : KeycapState.Unpressed
       : hovered || selected
-      ? KeycapState.Unpressed
-      : KeycapState.Pressed;
+        ? KeycapState.Unpressed
+        : KeycapState.Pressed;
   const [keycapZ, rotationZ] =
     pressedState === KeycapState.Pressed
       ? [zDown, rotation[2]]
@@ -392,8 +422,8 @@ export const Keycap: React.FC<ThreeFiberKeycapProps> = React.memo((props) => {
           : 'lightgrey'
         : 'pink'
       : pressedState === KeycapState.Unpressed
-      ? 'lightgrey'
-      : 'lightgrey';
+        ? 'lightgrey'
+        : 'lightgrey';
 
   const {z, b, rotateZ, tooltipScale} = useSpring({
     config: {duration: 100},
@@ -409,35 +439,35 @@ export const Keycap: React.FC<ThreeFiberKeycapProps> = React.memo((props) => {
       return disabled
         ? [noop, noop, noop, noop]
         : props.mode === DisplayMode.ConfigureColors
-        ? [
-            noop,
-            (evt: ThreeEvent<MouseEvent>) => {
-              if (onPointerOver) {
-                onPointerOver(evt, idx);
-              }
-            },
-            noop,
-            (evt: ThreeEvent<MouseEvent>) => {
-              if (onPointerDown) {
-                onPointerDown(evt, idx);
-              }
-            },
-          ]
-        : [
-            (evt: ThreeEvent<MouseEvent>) => onClick(evt, idx),
-            (evt: ThreeEvent<MouseEvent>) => {
-              if (onPointerOver) {
-                onPointerOver(evt, idx);
-              }
-              hover(true);
-            },
-            () => hover(false),
-            (evt: ThreeEvent<MouseEvent>) => {
-              if (onPointerDown) {
-                onPointerDown(evt, idx);
-              }
-            },
-          ];
+          ? [
+              noop,
+              (evt: ThreeEvent<MouseEvent>) => {
+                if (onPointerOver) {
+                  onPointerOver(evt, idx);
+                }
+              },
+              noop,
+              (evt: ThreeEvent<MouseEvent>) => {
+                if (onPointerDown) {
+                  onPointerDown(evt, idx);
+                }
+              },
+            ]
+          : [
+              (evt: ThreeEvent<MouseEvent>) => onClick(evt, idx),
+              (evt: ThreeEvent<MouseEvent>) => {
+                if (onPointerOver) {
+                  onPointerOver(evt, idx);
+                }
+                hover(true);
+              },
+              () => hover(false),
+              (evt: ThreeEvent<MouseEvent>) => {
+                if (onPointerDown) {
+                  onPointerDown(evt, idx);
+                }
+              },
+            ];
     }, [disabled, onClick, onPointerDown, onPointerOver, hover, idx, mode]);
 
   const AniMeshMaterial = animated.meshPhongMaterial as any;

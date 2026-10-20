@@ -7,8 +7,10 @@ import {
 import {useAppSelector} from 'src/store/hooks';
 import {
   getSelectedKeymap,
+  getSelectedLayerIndex,
   getSelectedPaletteBrightness,
   getSelectedPaletteColor,
+  getSelectedPaletteTransparent,
 } from 'src/store/keymapSlice';
 import {getShowKeyPainter} from 'src/store/menusSlice';
 import {DisplayMode, NDimension} from 'src/types/keyboard-rendering';
@@ -39,10 +41,18 @@ export const ConfigureKeyboard = (props: {
   const selectedPaletteBrightness = useAppSelector(
     getSelectedPaletteBrightness,
   );
+  const selectedPaletteTransparent = useAppSelector(
+    getSelectedPaletteTransparent,
+  );
+  // The key painter edits the lighting layer matching the selected keymap layer
+  const selectedPaintLayer = useAppSelector(getSelectedLayerIndex);
   const {keyColors, onKeycapPointerDown, onKeycapPointerOver} = useColorPainter(
     keys,
     selectedPaletteColor,
     selectedPaletteBrightness,
+    // The base layer can't be transparent
+    selectedPaletteTransparent && selectedPaintLayer > 0,
+    selectedPaintLayer,
   );
   const [normalizedKeys, normalizedColors] = useMemo(() => {
     // skip keys without colors on it

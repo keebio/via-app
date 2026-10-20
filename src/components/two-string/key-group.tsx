@@ -35,7 +35,7 @@ const getPosition = (x: number, y: number): [number, number, number] => [
   0,
 ];
 const getRGBArray = (keyColors: number[][]) => {
-  return keyColors.map(([hue, sat, val = 1]) => {
+  return keyColors.map(([hue, sat, val = 1, transparent = 0]) => {
     const rgbStr = getRGB({
       hue: Math.round((255 * hue) / 360),
       sat: Math.round(255 * sat),
@@ -43,7 +43,7 @@ const getRGBArray = (keyColors: number[][]) => {
     const srgbStr = `#${new Color(rgbStr)
       .multiplyScalar(0.15 + 0.85 * val)
       .getHexString()}`;
-    const keyColor = {c: srgbStr, t: srgbStr};
+    const keyColor = {c: srgbStr, t: srgbStr, transparent: !!transparent};
     return keyColor;
   });
 };

@@ -1,5 +1,5 @@
 import {DisplayMode} from 'src/types/keyboard-rendering';
-import {getDarkenedColor} from 'src/utils/color-math';
+import {getDarkenedColor, getKeycapBackground} from 'src/utils/color-math';
 import {CSSVarObject} from 'src/utils/keyboard-rendering';
 import styled from 'styled-components';
 import {Keycap2DTooltip} from '../../inputs/tooltip';
@@ -42,8 +42,8 @@ export const ComboKeycap = (props: any) => {
             animation: props.disabled
               ? 'initial' // This prevents the hover animation from firing when the keycap can't be interacted with
               : props.selected
-              ? '.75s infinite alternate select-glow'
-              : '',
+                ? '.75s infinite alternate select-glow'
+                : '',
             transform: `translateX(${
               (-Math.abs(r1[0] - r2[0]) * CSSVarObject.keyXPos) / 2
             }px) perspective(100px) translateZ(${props.keycapZ}px)`,
@@ -97,7 +97,7 @@ export const ComboKeycap = (props: any) => {
           <CanvasContainer
             style={{
               borderRadius: 4,
-              background: props.color.c,
+              background: getKeycapBackground(props.color),
               position: 'absolute',
               transform: `translate(${
                 CSSVarObject.keyXPos * r1[0] + CSSVarObject.faceXPadding[0]
@@ -119,7 +119,7 @@ export const ComboKeycap = (props: any) => {
           <CanvasContainer
             style={{
               borderRadius: 4,
-              background: props.color.c,
+              background: getKeycapBackground(props.color),
               position: 'absolute',
               transform: `translate(${
                 CSSVarObject.keyXPos * r2[0] + CSSVarObject.faceXPadding[0]
@@ -141,7 +141,7 @@ export const ComboKeycap = (props: any) => {
           <CanvasContainerBG
             style={{
               borderRadius: 4,
-              background: props.color.c,
+              background: getKeycapBackground(props.color),
               position: 'absolute',
               transform: `translate(${
                 1 + CSSVarObject.keyXPos * r1[0] + CSSVarObject.faceXPadding[0]
@@ -199,7 +199,8 @@ const ComboKeyBoundingContainer = styled.div<{$selected: boolean}>`
 const ComboKeyRectContainer = styled.div<{}>`
   box-sizing: border-box;
   padding: 2px 6px 10px 6px;
-  box-shadow: inset -1px -1px 0 rgb(0 0 0 / 20%),
+  box-shadow:
+    inset -1px -1px 0 rgb(0 0 0 / 20%),
     inset 1px 1px 0 rgb(255 255 255 / 20%);
 `;
 const ComboKeyBGContainer = styled.div<{}>`

@@ -18,6 +18,8 @@ export enum KeycapState {
 export type KeyColorPair = {
   c: string;
   t: string;
+  // Key painter: key is transparent on the lighting layer being painted
+  transparent?: boolean;
 };
 
 export type NDimension = '2D' | '3D';

@@ -28,7 +28,7 @@ import {
 import {Keycap} from './unit-key/keycap';
 
 const getSRGBArray = (keyColors: number[][]) => {
-  return keyColors.map(([hue, sat, val = 1]) => {
+  return keyColors.map(([hue, sat, val = 1, transparent = 0]) => {
     const rgbStr = getRGB({
       hue: Math.round((255 * hue) / 360),
       sat: Math.round(255 * sat),
@@ -37,7 +37,7 @@ const getSRGBArray = (keyColors: number[][]) => {
       .multiplyScalar(0.15 + 0.85 * val)
       .convertSRGBToLinear()
       .getHexString()}`;
-    const keyColor = {c: srgbStr, t: srgbStr};
+    const keyColor = {c: srgbStr, t: srgbStr, transparent: !!transparent};
     return keyColor;
   });
 };

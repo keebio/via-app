@@ -4,10 +4,14 @@ import {useDispatch} from 'react-redux';
 import {useAppSelector} from 'src/store/hooks';
 import {
   getSelected256PaletteColor,
+  getSelectedLayerIndex,
   getSelectedPaletteBrightness,
+  getSelectedPaletteTransparent,
   setSelectedPaletteBrightness,
   setSelectedPaletteColor,
+  setSelectedPaletteTransparent,
 } from 'src/store/keymapSlice';
+import {getSelectedCustomMenuData} from 'src/store/menusSlice';
 import {updateShowKeyPainter} from 'src/store/menusSlice';
 import {getRGB} from 'src/utils/color-math';
 import styled from 'styled-components';
@@ -51,11 +55,22 @@ export const ConnectedColorPalettePicker: React.FC = () => {
   const dispatch = useDispatch();
   const [hue, sat] = useAppSelector(getSelected256PaletteColor);
   const brightness = useAppSelector(getSelectedPaletteBrightness);
+  const transparent = useAppSelector(getSelectedPaletteTransparent);
+  // Lighting layer follows VIA's keymap layer selector
+  const layer = useAppSelector(getSelectedLayerIndex);
+  const customMenuData = useAppSelector(getSelectedCustomMenuData);
+  const layerCount: number =
+    (customMenuData as any)?.__perKeyLayers?.length ?? 1;
   const onChange = useCallback(
     (hue: number, sat: number, brightness: number) => {
       dispatch(setSelectedPaletteColor([hue, sat]));
       dispatch(setSelectedPaletteBrightness(brightness));
+      dispatch(setSelectedPaletteTransparent(false));
     },
+    [dispatch],
+  );
+  const onTransparent = useCallback(
+    () => dispatch(setSelectedPaletteTransparent(true)),
     [dispatch],
   );
   useEffect(() => {
@@ -70,6 +85,10 @@ export const ConnectedColorPalettePicker: React.FC = () => {
       sat={sat}
       brightness={brightness}
       onChange={onChange}
+      layerCount={layerCount}
+      layer={Math.min(layer, layerCount - 1)}
+      transparent={transparent && layer > 0}
+      onTransparent={onTransparent}
     />
   );
 };

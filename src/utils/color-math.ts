@@ -67,6 +67,14 @@ export const getColorByte = (color: string) => {
   return [r, g, b];
 };
 
+// Key painter: checkerboard over keys that are transparent on a lighting layer
+const TRANSPARENT_KEY_PATTERN =
+  'repeating-conic-gradient(rgba(255,255,255,0.25) 0 25%, transparent 0 50%) 50% / 10px 10px';
+export const getKeycapBackground = (color: {
+  c: string;
+  transparent?: boolean;
+}) => (color.transparent ? `${TRANSPARENT_KEY_PATTERN}, ${color.c}` : color.c);
+
 export const getDarkenedColor = (color: string, multiplier = 0.8) => {
   const [r, g, b] = getColorByte(color);
   const hr = Math.round(r * multiplier).toString(16);

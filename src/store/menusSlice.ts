@@ -381,9 +381,15 @@ export const updateV3MenuData =
         {res: props, ref: commandPromisesRes},
       ).res;
 
-      // Update to detect instance of color-palette control and an li on a key
+      // Update to detect instance of color-palette control and an li on a key.
+      // Include layout option keys, which can carry the highest LED indices.
+      const optionKeys = Object.values(definition.layouts.optionKeys).flatMap(
+        (options) => Object.values(options).flat(),
+      );
       const maxLedIndex = Math.max(
-        ...definition.layouts.keys.map((key) => key.li ?? -1),
+        ...[...definition.layouts.keys, ...optionKeys].map(
+          (key) => key.li ?? -1,
+        ),
       );
       console.debug(maxLedIndex, 'maxLedIndex');
 

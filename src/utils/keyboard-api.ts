@@ -468,15 +468,16 @@ export class KeyboardAPI {
     return res.map((r) => r[5]);
   }
 
-  // Rejects on firmware without lighting layers
-  async getPerKeyLayerCount(): Promise<number> {
+  // Lighting layer and indicator overlay counts; rejects on firmware without
+  // lighting layers. Indicator overlays follow the layers in overlay index.
+  async getPerKeyLayerInfo(): Promise<{layers: number; indicators: number}> {
     const res = await this.hidCommand(
       APICommand.CUSTOM_MENU_GET_VALUE,
       PER_KEY_LAYER_COUNT_CHANNEL_COMMAND,
       'CUSTOM_MENU_GET_VALUE',
       false,
     );
-    return res[3];
+    return {layers: res[3], indicators: res[4]};
   }
 
   // Returns [hue, sat, val, transparent] for LEDs 0..ledCount-1 on a layer

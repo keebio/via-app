@@ -18,6 +18,7 @@ export const useColorPainter = (
   selectedPaletteBrightness: number,
   selectedPaletteTransparent = false,
   selectedPaintLayer = 0,
+  selectedPaintIndicator: number | null = null,
 ) => {
   const selectedDevice = useAppSelector(getSelectedConnectedDevice);
   const api = useAppSelector(getSelectedKeyboardAPI);
@@ -33,9 +34,19 @@ export const useColorPainter = (
   useEffect(() => {
     setLayers(deviceLayers?.map((layer) => layer.map((led) => [...led])));
   }, [deviceLayers]);
-  const paintLayer = layers
-    ? Math.min(selectedPaintLayer, layers.length - 1)
+  // Overlays are the lighting layers followed by the indicator overlays
+  const indicatorCount: number =
+    (customMenuData as any).__perKeyIndicatorCount?.[0] ?? 0;
+  const layerCount = layers ? layers.length - indicatorCount : 0;
+  const keymapLayer = layers
+    ? Math.max(0, Math.min(selectedPaintLayer, layerCount - 1))
     : 0;
+  const paintLayer =
+    selectedPaintIndicator !== null && selectedPaintIndicator < indicatorCount
+      ? layerCount + selectedPaintIndicator
+      : keymapLayer;
+  // The base layer can't be transparent; there the brush paints its color
+  const paintTransparent = selectedPaletteTransparent && paintLayer > 0;
 
   useEffect(() => {
     const perKeyRGB = (customMenuData as any).__perKeyRGB ?? [];
@@ -58,7 +69,8 @@ export const useColorPainter = (
     keys,
   ]);
 
-  // The selected layer as it looks with every layer below it active
+  // The selected overlay as it looks with every layer below it active. An
+  // indicator's transparent keys show the selected keymap layer.
   const layerKeyColors = useMemo(
     () =>
       layers &&
@@ -67,6 +79,9 @@ export const useColorPainter = (
           return undefined;
         }
         let layer = paintLayer;
+        if (layer >= layerCount && layers[layer][key.li]?.[3]) {
+          layer = keymapLayer;
+        }
         while (layer > 0 && layers[layer][key.li]?.[3]) {
           layer--;
         }
@@ -81,7 +96,7 @@ export const useColorPainter = (
           ? [hue, sat, val, 0]
           : [hue, sat, val * TRANSPARENT_DIM, 1];
       }),
-    [layers, paintLayer, keys],
+    [layers, paintLayer, layerCount, keymapLayer, keys],
   );
 
   const onKeycapPointerHandler = useCallback(
@@ -94,12 +109,9 @@ export const useColorPainter = (
           return;
         }
         if (layers) {
-          if (selectedPaletteTransparent && paintLayer === 0) {
-            return; // the base layer can't be transparent
-          }
           const [h, s, v] = layers[paintLayer][ledIndex] ?? [hue, sat, 255];
           // Off and transparent keep the LED's color so it can be restored
-          const led = selectedPaletteTransparent
+          const led = paintTransparent
             ? [h, s, v, 1]
             : selectedPaletteBrightness === 0
               ? [h, s, 0, 0]
@@ -140,7 +152,7 @@ export const useColorPainter = (
       setKeyColors,
       selectedPaletteColor,
       selectedPaletteBrightness,
-      selectedPaletteTransparent,
+      paintTransparent,
       paintLayer,
       layers,
       keys,

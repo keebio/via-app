@@ -14,6 +14,10 @@ type Props = {
   layer?: number;
   transparent?: boolean;
   onTransparent?: () => void;
+  // Indicator overlays (Caps Lock etc.); null paints the keymap layer instead
+  indicators?: string[];
+  indicator?: number | null;
+  onIndicatorChange?: (indicator: number | null) => void;
 };
 
 const PRESETS: {label: string; hue: number; sat: number}[] = [
@@ -135,6 +139,27 @@ const LayerLabel = styled.span`
   color: var(--color_label);
 `;
 
+const OverlayButtons = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
+
+const OverlayButton = styled.button<{$selected: boolean}>`
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid
+    ${(props) =>
+      props.$selected ? 'var(--color_accent)' : 'var(--border_color_cell)'};
+  background: ${(props) =>
+    props.$selected ? 'var(--color_accent)' : 'transparent'};
+  color: ${(props) =>
+    props.$selected ? 'var(--color_inside-accent)' : 'var(--color_label)'};
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+`;
+
 const TransparentSwatch = styled(Swatch)`
   background: repeating-conic-gradient(#999 0 25%, #eee 0 50%) 50% / 10px 10px;
 `;
@@ -149,7 +174,7 @@ const Preview = styled.div`
 
 const Readout = styled.span`
   font-size: 14px;
-  color: var(--color_label_highlighted);
+  color: var(--color_label-highlighted);
   font-variant-numeric: tabular-nums;
 `;
 
@@ -189,7 +214,11 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
     layer = 0,
     transparent = false,
     onTransparent,
+    indicators = [],
+    indicator = null,
+    onIndicatorChange,
   } = props;
+  const isOverlay = layer > 0 || indicator !== null;
   // Brightness to return to when a preset is picked after "Off"
   const lastOn = useRef(brightness || 255);
   if (brightness > 0) {
@@ -218,11 +247,34 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
   const isOff = !transparent && brightness === 0;
   return (
     <Container>
-      {layerCount > 1 && (
+      {indicators.length > 0 && onIndicatorChange && (
+        <OverlayButtons>
+          <OverlayButton
+            $selected={indicator === null}
+            title="Paint the keymap layer selected above the keyboard"
+            onClick={() => onIndicatorChange(null)}
+          >
+            Layer {layer}
+          </OverlayButton>
+          {indicators.map((name, i) => (
+            <OverlayButton
+              key={name}
+              $selected={indicator === i}
+              title={`Keys lit while ${name} is on, over any effect`}
+              onClick={() => onIndicatorChange(i)}
+            >
+              {name}
+            </OverlayButton>
+          ))}
+        </OverlayButtons>
+      )}
+      {(layerCount > 1 || indicator !== null) && (
         <LayerLabel>
-          {layer === 0
-            ? 'Painting base layer'
-            : `Painting layer ${layer} overlay`}
+          {indicator !== null
+            ? `Painting ${indicators[indicator]} indicator`
+            : layer === 0
+              ? 'Painting base layer'
+              : `Painting layer ${layer} overlay`}
         </LayerLabel>
       )}
       <Area
@@ -274,7 +326,7 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
           $selected={isOff}
           onClick={() => onChange(hue, sat, 0)}
         />
-        {layer > 0 && onTransparent && (
+        {isOverlay && onTransparent && (
           <TransparentSwatch
             title="Transparent: show the layer below"
             $selected={transparent}

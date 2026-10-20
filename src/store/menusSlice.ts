@@ -404,18 +404,21 @@ export const updateV3MenuData =
         const ledIndices = Array(maxLedIndex + 1)
           .fill(0)
           .map((_, i) => i);
-        let layerCount = 0;
+        let layerInfo = {layers: 0, indicators: 0};
         try {
-          layerCount = await api.getPerKeyLayerCount();
+          layerInfo = await api.getPerKeyLayerInfo();
         } catch {
           // Firmware without lighting layers: use the single-layer commands
         }
-        if (layerCount > 0) {
-          const layers = [];
-          for (let layer = 0; layer < layerCount; layer++) {
-            layers.push(await api.getPerKeyLayer(layer, maxLedIndex + 1));
+        if (layerInfo.layers > 0) {
+          // Lighting layers, then indicator overlays
+          const overlays = [];
+          const overlayCount = layerInfo.layers + layerInfo.indicators;
+          for (let overlay = 0; overlay < overlayCount; overlay++) {
+            overlays.push(await api.getPerKeyLayer(overlay, maxLedIndex + 1));
           }
-          props.__perKeyLayers = layers;
+          props.__perKeyLayers = overlays;
+          props.__perKeyIndicatorCount = [layerInfo.indicators];
         } else {
           props.__perKeyRGB = await api.getPerKeyRGBMatrix(ledIndices);
           try {

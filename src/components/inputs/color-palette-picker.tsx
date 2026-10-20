@@ -6,9 +6,11 @@ import {
   getSelected256PaletteColor,
   getSelectedLayerIndex,
   getSelectedPaletteBrightness,
+  getSelectedPaintIndicator,
   getSelectedPaletteTransparent,
   setSelectedPaletteBrightness,
   setSelectedPaletteColor,
+  setSelectedPaintIndicator,
   setSelectedPaletteTransparent,
 } from 'src/store/keymapSlice';
 import {getSelectedCustomMenuData} from 'src/store/menusSlice';
@@ -51,6 +53,9 @@ const PreviousColorOption = styled.div<{$selected: boolean}>`
     props.$selected ? 'var(--color_accent)' : 'var(--border_color_cell)'};
 `;
 
+// Firmware indicator overlay order
+const INDICATOR_NAMES = ['Caps Lock', 'Num Lock', 'Scroll Lock', 'Caps Word'];
+
 export const ConnectedColorPalettePicker: React.FC = () => {
   const dispatch = useDispatch();
   const [hue, sat] = useAppSelector(getSelected256PaletteColor);
@@ -59,8 +64,16 @@ export const ConnectedColorPalettePicker: React.FC = () => {
   // Lighting layer follows VIA's keymap layer selector
   const layer = useAppSelector(getSelectedLayerIndex);
   const customMenuData = useAppSelector(getSelectedCustomMenuData);
+  // __perKeyLayers holds the lighting layers followed by indicator overlays
+  const indicatorCount: number =
+    (customMenuData as any)?.__perKeyIndicatorCount?.[0] ?? 0;
   const layerCount: number =
-    (customMenuData as any)?.__perKeyLayers?.length ?? 1;
+    ((customMenuData as any)?.__perKeyLayers?.length ?? 1) - indicatorCount;
+  const selectedIndicator = useAppSelector(getSelectedPaintIndicator);
+  const indicator =
+    selectedIndicator !== null && selectedIndicator < indicatorCount
+      ? selectedIndicator
+      : null;
   const onChange = useCallback(
     (hue: number, sat: number, brightness: number) => {
       dispatch(setSelectedPaletteColor([hue, sat]));
@@ -71,6 +84,11 @@ export const ConnectedColorPalettePicker: React.FC = () => {
   );
   const onTransparent = useCallback(
     () => dispatch(setSelectedPaletteTransparent(true)),
+    [dispatch],
+  );
+  const onIndicatorChange = useCallback(
+    (indicator: number | null) =>
+      dispatch(setSelectedPaintIndicator(indicator)),
     [dispatch],
   );
   useEffect(() => {
@@ -87,8 +105,11 @@ export const ConnectedColorPalettePicker: React.FC = () => {
       onChange={onChange}
       layerCount={layerCount}
       layer={Math.min(layer, layerCount - 1)}
-      transparent={transparent && layer > 0}
+      transparent={transparent && (layer > 0 || indicator !== null)}
       onTransparent={onTransparent}
+      indicators={INDICATOR_NAMES.slice(0, indicatorCount)}
+      indicator={indicator}
+      onIndicatorChange={onIndicatorChange}
     />
   );
 };

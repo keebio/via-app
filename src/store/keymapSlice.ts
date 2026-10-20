@@ -30,6 +30,8 @@ type KeymapState = {
   selectedPaletteBrightness: number;
   // Painting with this brush makes keys transparent on a lighting layer
   selectedPaletteTransparent: boolean;
+  // Indicator overlay the key painter edits instead of the keymap layer
+  selectedPaintIndicator: number | null;
 };
 
 const initialState: KeymapState = {
@@ -41,6 +43,7 @@ const initialState: KeymapState = {
   selectedPaletteColor: [0, 0],
   selectedPaletteBrightness: 255,
   selectedPaletteTransparent: false,
+  selectedPaintIndicator: null,
 };
 
 const keymapSlice = createSlice({
@@ -58,6 +61,12 @@ const keymapSlice = createSlice({
     },
     setSelectedPaletteTransparent: (state, action: PayloadAction<boolean>) => {
       state.selectedPaletteTransparent = action.payload;
+    },
+    setSelectedPaintIndicator: (
+      state,
+      action: PayloadAction<number | null>,
+    ) => {
+      state.selectedPaintIndicator = action.payload;
     },
     setNumberOfLayers: (state, action: PayloadAction<number>) => {
       state.numberOfLayers = action.payload;
@@ -139,6 +148,7 @@ export const {
   setSelectedPaletteColor,
   setSelectedPaletteBrightness,
   setSelectedPaletteTransparent,
+  setSelectedPaintIndicator,
 } = keymapSlice.actions;
 
 export default keymapSlice.reducer;
@@ -227,6 +237,8 @@ export const getSelectedPaletteBrightness = (state: RootState) =>
   state.keymap.selectedPaletteBrightness;
 export const getSelectedPaletteTransparent = (state: RootState) =>
   state.keymap.selectedPaletteTransparent;
+export const getSelectedPaintIndicator = (state: RootState) =>
+  state.keymap.selectedPaintIndicator;
 export const getSelectedPaletteColor = createSelector(
   getSelected256PaletteColor,
   ([hue, sat]) => {

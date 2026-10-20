@@ -10,12 +10,11 @@ import {
 import {keymapExtras} from 'src/utils/keymap-extras';
 
 const Container = styled.div`
-  position: absolute;
-  right: 220px;
-  top: 0px;
+  position: relative;
   font-size: 18px;
   pointer-events: none;
   font-weight: 400;
+  flex: 0 0 auto;
 `;
 
 const LayoutTitle = styled.label`
@@ -28,12 +27,12 @@ const LayoutTitle = styled.label`
   text-transform: uppercase;
   color: var(--color_inside-accent);
   padding: 1px 10px;
-  margin-right: 10px;
   border: solid 1px var(--bg_control);
   border-top: none;
   cursor: pointer;
   transition: all 0.1s ease-out;
   white-space: nowrap;
+
   &:hover {
     filter: brightness(0.7);
   }
@@ -47,7 +46,7 @@ const LayoutList = styled.ul<{$show: boolean}>`
   background-color: var(--bg_menu);
   margin: 0;
   margin-top: 5px;
-  right: 10px;
+  right: 0;
   position: absolute;
   pointer-events: ${(props) => (props.$show ? 'all' : 'none')};
   transition: all 0.2s ease-out;
@@ -77,6 +76,7 @@ const LayoutButton = styled.button<{$selected?: boolean}>`
   text-align: left;
   font-size: 14px;
   padding: 5px 10px;
+
   &:hover {
     border: none;
     background: ${(props) =>
@@ -114,35 +114,36 @@ export const HostKeyboardLayoutBadge = () => {
     keymapExtras[hostKeyboardLayout]?.label ?? hostKeyboardLayout;
 
   return (
-    <>
-      <Container>
-        <LayoutTitle onClick={() => setShowList(!showList)}>
-          {currentLabel}
-          <FontAwesomeIcon
-            icon={faAngleDown}
-            style={{
-              transform: showList ? 'rotate(180deg)' : '',
-              transition: 'transform 0.2s ease-out',
-              marginLeft: '5px',
+    <Container>
+      <LayoutTitle onClick={() => setShowList(!showList)}>
+        {currentLabel}
+
+        <FontAwesomeIcon
+          icon={faAngleDown}
+          style={{
+            transform: showList ? 'rotate(180deg)' : '',
+            transition: 'transform 0.2s ease-out',
+            marginLeft: '5px',
+          }}
+        />
+      </LayoutTitle>
+
+      {showList && <ClickCover onClick={() => setShowList(false)} />}
+
+      <LayoutList $show={showList}>
+        {layoutOptions.map(({key, label}) => (
+          <LayoutButton
+            key={key}
+            $selected={key === hostKeyboardLayout}
+            onClick={() => {
+              dispatch(updateHostKeyboardLayout(key));
+              setShowList(false);
             }}
-          />
-        </LayoutTitle>
-        {showList && <ClickCover onClick={() => setShowList(false)} />}
-        <LayoutList $show={showList}>
-          {layoutOptions.map(({key, label}) => (
-            <LayoutButton
-              key={key}
-              $selected={key === hostKeyboardLayout}
-              onClick={() => {
-                dispatch(updateHostKeyboardLayout(key));
-                setShowList(false);
-              }}
-            >
-              {label}
-            </LayoutButton>
-          ))}
-        </LayoutList>
-      </Container>
-    </>
+          >
+            {label}
+          </LayoutButton>
+        ))}
+      </LayoutList>
+    </Container>
   );
 };

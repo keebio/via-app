@@ -23,12 +23,11 @@ import {
 } from 'src/store/definitionNameSlice';
 
 const Container = styled.div`
-  position: absolute;
-  right: 15px;
-  top: 0px;
+  position: relative;
   font-size: 18px;
   pointer-events: none;
   font-weight: 400;
+  flex: 0 0 auto;
 `;
 
 const KeyboardTitle = styled.label`
@@ -41,15 +40,17 @@ const KeyboardTitle = styled.label`
   text-transform: uppercase;
   color: var(--color_inside-accent);
   padding: 1px 10px;
-  margin-right: 10px;
   border: solid 1px var(--bg_control);
   border-top: none;
   cursor: pointer;
   transition: all 0.1s ease-out;
+  white-space: nowrap;
+
   &:hover {
     filter: brightness(0.7);
   }
 `;
+
 const KeyboardList = styled.ul<{$show: boolean}>`
   padding: 0;
   border: 1px solid var(--bg_control);
@@ -58,7 +59,7 @@ const KeyboardList = styled.ul<{$show: boolean}>`
   background-color: var(--bg_menu);
   margin: 0;
   margin-top: 5px;
-  right: 10px;
+  right: 0;
   position: absolute;
   pointer-events: ${(props) => (props.$show ? 'all' : 'none')};
   transition: all 0.2s ease-out;
@@ -67,9 +68,9 @@ const KeyboardList = styled.ul<{$show: boolean}>`
   overflow: hidden;
   transform: ${(props) => (props.$show ? 0 : `translateY(-5px)`)};
 `;
+
 const KeyboardButton = styled.button<{$selected?: boolean}>`
   display: block;
-  text-align: center;
   outline: none;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -88,6 +89,7 @@ const KeyboardButton = styled.button<{$selected?: boolean}>`
   font-size: 14px;
   text-transform: uppercase;
   padding: 5px 10px;
+
   &:hover {
     border: none;
     background: ${(props) =>
@@ -125,15 +127,19 @@ const KeyboardSelectors: React.FC<{
   selectKeyboard: (kb: string) => void;
 }> = (props) => {
   const {t} = useTranslation();
+
   const requestAndChangeDevice = async () => {
     const device = await HID.requestDevice();
+
     if (device) {
       props.selectKeyboard((device as any).__path);
     }
   };
+
   return (
     <>
       {props.show && <ClickCover onClick={props.onClickOut} />}
+
       <KeyboardList $show={props.show}>
         {props.keyboards.map(([path, , name]) => {
           return (
@@ -146,6 +152,7 @@ const KeyboardSelectors: React.FC<{
             </KeyboardButton>
           );
         })}
+
         {!isElectron && (
           <KeyboardButton onClick={requestAndChangeDevice}>
             {t('Authorize New')}
@@ -174,6 +181,7 @@ export const Badge = () => {
       Object.entries(connectedDevices)
         .map<ConnectedKeyboardDefinition>(([path, device]) => {
           const connectedDevice = device as ConnectedDevice;
+
           return [
             path,
             definitions[connectedDevice.vendorProductId] &&
@@ -192,30 +200,30 @@ export const Badge = () => {
   }
 
   return (
-    <>
-      <Container>
-        <KeyboardTitle onClick={() => setShowList(!showList)}>
-          {selectedDefinitionName}
-          <FontAwesomeIcon
-            icon={faAngleDown}
-            style={{
-              transform: showList ? 'rotate(180deg)' : '',
-              transition: 'transform 0.2s ease-out',
-              marginLeft: '5px',
-            }}
-          />
-        </KeyboardTitle>
-        <KeyboardSelectors
-          show={showList}
-          selectedPath={selectedPath}
-          keyboards={connectedKeyboardDefinitions}
-          onClickOut={() => setShowList(false)}
-          selectKeyboard={(path) => {
-            dispatch(selectConnectedDeviceByPath(path));
-            setShowList(false);
+    <Container>
+      <KeyboardTitle onClick={() => setShowList(!showList)}>
+        {selectedDefinitionName}
+
+        <FontAwesomeIcon
+          icon={faAngleDown}
+          style={{
+            transform: showList ? 'rotate(180deg)' : '',
+            transition: 'transform 0.2s ease-out',
+            marginLeft: '5px',
           }}
         />
-      </Container>
-    </>
+      </KeyboardTitle>
+
+      <KeyboardSelectors
+        show={showList}
+        selectedPath={selectedPath}
+        keyboards={connectedKeyboardDefinitions}
+        onClickOut={() => setShowList(false)}
+        selectKeyboard={(path) => {
+          dispatch(selectConnectedDeviceByPath(path));
+          setShowList(false);
+        }}
+      />
+    </Container>
   );
 };

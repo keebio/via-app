@@ -6,6 +6,7 @@ export const Grid = styled.div`
   width: 100%;
   display: grid;
   grid-template-columns: min-content min-content minmax(0, 1fr);
+
   > div {
     pointer-events: all;
   }
@@ -18,6 +19,21 @@ export const Cell = styled.div`
 export const MenuCell = styled(Cell)`
   background: var(--bg_menu);
   border-top: 1px solid var(--border_color_cell);
+  min-height: 0;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  direction: rtl;
+
+  width: fit-content;
+
+  padding-right: 8px;
+
+  > * {
+    direction: ltr;
+    width: fit-content;
+  }
 `;
 
 export const OverflowCell = styled(Cell)`
@@ -68,14 +84,17 @@ export const CategoryIconContainer = styled.span<{$selected?: boolean}>`
     props.$selected ? 'var(--color_accent)' : 'transparent'};
   border-radius: 10px;
   width: 40px;
+
   &:hover {
     color: ${(props) =>
       props.$selected ? 'var(--color_inside-accent)' : 'var(--color_accent)'};
+
     & .tooltip {
       transform: scale(1) translateX(0px);
       opacity: 1;
     }
   }
+
   .tooltip {
     transform: translateX(-5px) scale(0.6);
     opacity: 0;
@@ -87,6 +106,7 @@ export const IconContainer = styled.span`
   text-align: center;
   width: 35px;
   position: relative;
+
   &:hover > span > div {
     background-color: red;
   }
@@ -145,11 +165,13 @@ export const Row = styled.div<{$selected: boolean}>`
 
   &:hover {
     color: var(--color_label-highlighted);
+
     & .tooltip {
       transform: scale(1) translateX(0px);
       opacity: 1;
     }
   }
+
   .tooltip {
     transform: translateX(-5px) scale(0.6);
     opacity: 0;

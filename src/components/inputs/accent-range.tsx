@@ -84,14 +84,9 @@ export const AccentRange: React.FC<
     }
   }, [currentValue]);
 
-  const handleChange = (newValue: number) => {
-    setDraftValue(String(newValue));
-    props.onChange(newValue);
-  };
-
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = +e.target.value;
-    handleChange(newValue);
+    props.onChange(newValue);
   };
 
   const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +111,10 @@ export const AccentRange: React.FC<
       return;
     }
     if (parsedValue !== currentValue) {
-      handleChange(parsedValue);
+      // Keep the controlled value authoritative. The parent may constrain the
+      // requested value, including resolving it back to currentValue.
+      setDraftValue(String(currentValue));
+      props.onChange(parsedValue);
     } else {
       setDraftValue(String(currentValue));
     }

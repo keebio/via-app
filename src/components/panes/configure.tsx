@@ -48,6 +48,25 @@ const MenuContainer = styled.div`
   padding: 15px 10px 20px 10px;
 `;
 
+const BadgeRow = styled.div`
+  position: absolute;
+  top: 0;
+  right: 15px;
+
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+
+  /*
+   * Constant distance between the host-layout selector
+   * and the connected keyboard name.
+   */
+  gap: 10px;
+
+  pointer-events: none;
+  white-space: nowrap;
+`;
+
 const Rows = [
   Keycode,
   Macros,
@@ -57,12 +76,14 @@ const Rows = [
   RotaryEncoder,
   ...makeCustomMenus([]),
 ];
+
 function getCustomPanes(customFeatures: CustomFeaturesV2[]) {
   if (
     customFeatures.find((feature) => feature === CustomFeaturesV2.RotaryEncoder)
   ) {
     return [RotaryEncoder];
   }
+
   return [];
 }
 
@@ -99,6 +120,7 @@ const filterInferredRows = (
 ): typeof Rows => {
   const {layouts} = selectedDefinition;
   let removeList: typeof Rows = [];
+
   // LAYOUTS IS INFERRED, filter out if doesn't exist
   if (
     !(layouts.optionKeys && Object.entries(layouts.optionKeys).length !== 0)
@@ -113,9 +135,11 @@ const filterInferredRows = (
   if (!showMacros) {
     removeList = [...removeList, Macros];
   }
+
   let filteredRows = rows.filter(
     (row) => !removeList.includes(row),
   ) as typeof Rows;
+
   return filteredRows;
 };
 
@@ -125,16 +149,20 @@ const getRowsForKeyboardV2 = (
   numberOfLayers: number,
 ): typeof Rows => {
   let rows: typeof Rows = [Keycode, Layouts, Macros, SaveLoad];
+
   if (isVIADefinitionV2(selectedDefinition)) {
     const {lighting, customFeatures} = selectedDefinition;
     const {supportedLightingValues} = getLightingDefinition(lighting);
+
     if (supportedLightingValues.length !== 0) {
       rows = [...rows, Lighting];
     }
+
     if (customFeatures) {
       rows = [...rows, ...getCustomPanes(customFeatures)];
     }
   }
+
   return filterInferredRows(
     selectedDefinition,
     showMacros,
@@ -165,11 +193,14 @@ const Loader: React.FC<{
         setShowButton(true);
       }
     }, 3000);
+
     return () => clearTimeout(timeout);
   }, [selectedDefinition]);
+
   return (
     <LoaderPane>
       {<ChippyLoader theme={theme} progress={loadProgress || null} />}
+
       {(showButton || noConnectedDevices) && !noSupportedIds && !isElectron ? (
         <AccentButtonLarge onClick={() => dispatch(reloadConnectedDevices())}>
           {t('Authorize device')}
@@ -201,6 +232,7 @@ export const ConfigurePane = () => {
   const renderMode = useAppSelector(getRenderMode);
 
   const showLoader = !selectedDefinition || loadProgress !== 1;
+
   return showLoader ? (
     renderMode === '2D' ? (
       <Loader
@@ -249,10 +281,14 @@ const ConfigureGrid = () => {
       >
         <div style={{pointerEvents: 'all'}}>
           <LayerControl />
-          <Badge />
-          <HostKeyboardLayoutBadge />
+
+          <BadgeRow>
+            <HostKeyboardLayoutBadge />
+            <Badge />
+          </BadgeRow>
         </div>
       </ConfigureFlexCell>
+
       <Grid style={{pointerEvents: 'none'}}>
         <MenuCell style={{pointerEvents: 'all'}}>
           <MenuContainer>

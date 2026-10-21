@@ -25,6 +25,12 @@ import {
 import {getExpressions, saveMacros} from 'src/store/macrosSlice';
 import {useTranslation} from 'react-i18next';
 import {getSelectedDefinitionName} from 'src/store/definitionNameSlice';
+import {
+  getCustomCommands,
+  getSelectedCustomMenuData,
+  updateCustomMenuValue,
+  updateV3MenuData,
+} from 'src/store/menusSlice';
 
 type ViaSaveFile = {
   name: string;
@@ -34,8 +40,38 @@ type ViaSaveFile = {
   encoders?: [string, string][][];
 };
 
+// Lighting export (keebio/via-app), kept apart from the layout so importing a
+// shared keymap doesn't replace your lighting
+type ViaLightingFile = {
+  name: string;
+  vendorProductId: number;
+  // Lighting menu values by command name, e.g. id_qmk_rgb_matrix_effect
+  menus?: Record<string, number[]>;
+  // keebio/via_per_key_rgb: [hue, sat, val, transparent] per LED for each
+  // lighting layer, then each indicator overlay
+  perKey?: {
+    layers: number;
+    indicators: number;
+    overlays: number[][][];
+  };
+};
+
+// Lighting channels (backlight, RGB light, RGB matrix, LED matrix) plus
+// via_per_key_rgb's underglow color. Other channel 0 values are board-specific
+// and may be buttons, so they're left out.
+const LIGHTING_CHANNELS = [1, 2, 3, 5];
+const EXTRA_LIGHTING_COMMANDS = ['id_via_per_key_underglow'];
+const isLightingCommand = (name: string, [channel]: number[]) =>
+  LIGHTING_CHANNELS.includes(channel) || EXTRA_LIGHTING_COMMANDS.includes(name);
+
 const isViaSaveFile = (obj: any): obj is ViaSaveFile =>
   obj && obj.name && obj.layers && obj.vendorProductId;
+
+const isViaLightingFile = (obj: any): obj is ViaLightingFile =>
+  obj && obj.name && obj.vendorProductId && (obj.menus || obj.perKey);
+
+const getFileBaseName = (name: string) =>
+  name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
 
 const SaveLoadPane = styled(CenterPane)`
   height: 100%;
@@ -60,6 +96,15 @@ export const Pane: FC = () => {
   const macros = useAppSelector((state) => state.macros);
   const expressions = useAppSelector(getExpressions);
   const {basicKeyToByte, byteToKey} = useAppSelector(getBasicKeyToByte);
+  const customCommands = useAppSelector(getCustomCommands) as Record<
+    string,
+    number[]
+  >;
+  const customMenuData = useAppSelector(getSelectedCustomMenuData);
+  const hasLighting =
+    Object.entries(customCommands).some(([name, command]) =>
+      isLightingCommand(name, command),
+    ) || !!(customMenuData as any)?.__perKeyLayers;
 
   // TODO: improve typing so we can remove this
   if (!selectedDefinition || !selectedDevice || !api) {
@@ -112,11 +157,77 @@ export const Pane: FC = () => {
     }
   };
 
+  const getLighting = async (): Promise<
+    Pick<ViaLightingFile, 'menus' | 'perKey'>
+  > => {
+    const menus: Record<string, number[]> = {};
+    Object.entries(customCommands).forEach(([name, command]) => {
+      const value = (customMenuData as any)?.[name];
+      if (isLightingCommand(name, command) && Array.isArray(value)) {
+        // Lighting values are at most 2 bytes (16-bit ranges, hue/sat)
+        menus[name] = value.slice(0, 2);
+      }
+    });
+    // Read per-key lighting fresh: the painter writes it straight to the device
+    let perKey: ViaLightingFile['perKey'];
+    const ledCount: number | undefined = (customMenuData as any)
+      ?.__perKeyLayers?.[0]?.length;
+    if (ledCount) {
+      try {
+        const {layers, indicators} = await api.getPerKeyLayerInfo();
+        const overlays = [];
+        for (let i = 0; i < layers + indicators; i++) {
+          overlays.push(await api.getPerKeyLayer(i, ledCount));
+        }
+        perKey = {layers, indicators, overlays};
+      } catch {
+        // Firmware without lighting layers
+      }
+    }
+    return {menus, perKey};
+  };
+
+  // Returns false if per-key lighting was skipped for not matching this board
+  const loadLighting = async (lighting: ViaLightingFile) => {
+    Object.entries(lighting.menus ?? {}).forEach(([name, value]) => {
+      const command = customCommands[name];
+      if (command && isLightingCommand(name, command)) {
+        dispatch(updateCustomMenuValue(name, ...command, ...value));
+      }
+    });
+    if (!lighting.perKey) {
+      return true;
+    }
+    // Per-key lighting goes on last: setting the underglow color resets
+    // per-key brightness in firmware
+    const {layers, indicators, overlays} = lighting.perKey;
+    const ledCount = overlays[0]?.length;
+    try {
+      const info = await api.getPerKeyLayerInfo();
+      if (
+        info.layers !== layers ||
+        info.indicators !== indicators ||
+        ledCount !== (customMenuData as any)?.__perKeyLayers?.[0]?.length ||
+        overlays.some((overlay) => overlay.length !== ledCount)
+      ) {
+        return false;
+      }
+    } catch {
+      return false; // Firmware without lighting layers
+    }
+    for (let i = 0; i < overlays.length; i++) {
+      await api.setPerKeyLayer(i, overlays[i]);
+    }
+    await api.commitCustomMenu(0);
+    // Re-read so the painter shows the imported colors
+    await dispatch(updateV3MenuData(selectedDevice));
+    return true;
+  };
+
   const saveLayout = async () => {
     const {vendorProductId} = selectedDefinition;
     const name = selectedDefinitionName;
-    const suggestedName =
-      name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() + '.layout.json';
+    const suggestedName = getFileBaseName(name) + '.layout.json';
     try {
       const handle = await window.showSaveFilePicker({
         suggestedName,
@@ -252,6 +363,71 @@ export const Pane: FC = () => {
     reader.readAsBinaryString(file);
   };
 
+  const saveLightingFile = async () => {
+    const name = selectedDefinitionName;
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: getFileBaseName(name) + '.lighting.json',
+      });
+      const lightingFile: ViaLightingFile = {
+        name,
+        vendorProductId: selectedDefinition.vendorProductId,
+        ...(await getLighting()),
+      };
+      const blob = new Blob([stringify(lightingFile)], {
+        type: 'application/json',
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    } catch (err) {
+      console.log('User cancelled save file request');
+    }
+  };
+
+  const loadLightingFile = ([file]: Blob[]) => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    const reader = new FileReader();
+
+    reader.onabort = () => setErrorMessage(t('File reading was cancelled.'));
+    reader.onerror = () => setErrorMessage(t('Failed to read file.'));
+
+    reader.onload = async () => {
+      const lightingFile = JSON.parse((reader as any).result.toString());
+      if (!isViaLightingFile(lightingFile)) {
+        setErrorMessage(
+          t(
+            isViaSaveFile(lightingFile)
+              ? 'Could not load file: this is a layout file. Use Import Layout instead.'
+              : 'Could not load file: invalid data.',
+          ),
+        );
+        return;
+      }
+
+      if (lightingFile.vendorProductId !== selectedDefinition.vendorProductId) {
+        setErrorMessage(
+          t(
+            'Could not import lighting. This file was created for a different keyboard: {{name}}',
+            {name: lightingFile.name},
+          ),
+        );
+        return;
+      }
+
+      setSuccessMessage(
+        t(
+          (await loadLighting(lightingFile))
+            ? 'Successfully updated lighting!'
+            : 'Updated lighting settings, but skipped per-key lighting: it was saved from a different lighting setup.',
+        ),
+      );
+    };
+
+    reader.readAsBinaryString(file);
+  };
+
   return (
     <SpanOverflowCell>
       <SaveLoadPane>
@@ -270,6 +446,26 @@ export const Pane: FC = () => {
               </AccentUploadButton>
             </Detail>
           </ControlRow>
+          {hasLighting ? (
+            <>
+              <ControlRow>
+                <Label>{t('Export Lighting')}</Label>
+                <Detail>
+                  <AccentButton onClick={saveLightingFile}>
+                    {t('Export')}
+                  </AccentButton>
+                </Detail>
+              </ControlRow>
+              <ControlRow>
+                <Label>{t('Import Lighting')}</Label>
+                <Detail>
+                  <AccentUploadButton onLoad={loadLightingFile}>
+                    {t('Import')}
+                  </AccentUploadButton>
+                </Detail>
+              </ControlRow>
+            </>
+          ) : null}
           {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
           {successMessage ? (
             <SuccessMessage>{successMessage}</SuccessMessage>

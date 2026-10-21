@@ -501,6 +501,28 @@ export class KeyboardAPI {
     return res.flat();
   }
 
+  // Writes [hue, sat, val, transparent] for LEDs 0..leds.length-1 on a layer
+  async setPerKeyLayer(layer: number, leds: number[][]): Promise<void> {
+    for (
+      let start = 0;
+      start < leds.length;
+      start += PER_KEY_LAYER_LEDS_PER_PACKET
+    ) {
+      const chunk = leds.slice(start, start + PER_KEY_LAYER_LEDS_PER_PACKET);
+      await this.hidCommand(
+        APICommand.CUSTOM_MENU_SET_VALUE,
+        [
+          ...PER_KEY_LAYER_CHANNEL_COMMAND,
+          layer,
+          start,
+          chunk.length,
+          ...chunk.flatMap((led) => led.slice(0, 4)),
+        ],
+        'CUSTOM_MENU_SET_VALUE',
+      );
+    }
+  }
+
   async setPerKeyLayerLED(
     layer: number,
     index: number,

@@ -26,6 +26,20 @@ the output folder `dist`. This should be copied or symlinked to our repo's `publ
 public/definitions -> ../../keyboards/dist
 ```
 
+### Testing definitions from a local keyboards checkout
+
+`npm run dev` only builds `public/definitions` when the folder doesn't exist yet, and then from the `via-keyboards` npm dependency, not from a local checkout. To test local definition changes, build them straight into this repo (paths assume the two checkouts sit side by side):
+
+```bash
+# Inside the keyboards checkout
+npm ci                                            # first time, or after its package.json changes
+npm run build -- ../via-app/public/definitions
+```
+
+Then restart `npm run dev`. The app reads `public/definitions/hash.json` at startup and only refreshes its cached definitions when the hash changes.
+
+To iterate on a single definition without rebuilding, load its JSON from Design → Load Draft Definition instead.
+
 ### Useful commands
 
 #### `npm run dev`

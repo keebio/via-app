@@ -19,6 +19,7 @@ export const useColorPainter = (
   selectedPaletteTransparent = false,
   selectedPaintLayer = 0,
   selectedPaintIndicator: number | null = null,
+  paintIndicatorsOnly = false,
 ) => {
   const selectedDevice = useAppSelector(getSelectedConnectedDevice);
   const api = useAppSelector(getSelectedKeyboardAPI);
@@ -41,9 +42,11 @@ export const useColorPainter = (
   const keymapLayer = layers
     ? Math.max(0, Math.min(selectedPaintLayer, layerCount - 1))
     : 0;
+  const paintIndicator =
+    selectedPaintIndicator ?? (paintIndicatorsOnly ? 0 : null);
   const paintLayer =
-    selectedPaintIndicator !== null && selectedPaintIndicator < indicatorCount
-      ? layerCount + selectedPaintIndicator
+    paintIndicator !== null && paintIndicator < indicatorCount
+      ? layerCount + paintIndicator
       : keymapLayer;
   // The base layer can't be transparent; there the brush paints its color
   const paintTransparent = selectedPaletteTransparent && paintLayer > 0;
@@ -80,6 +83,10 @@ export const useColorPainter = (
         }
         let layer = paintLayer;
         if (layer >= layerCount && layers[layer][key.li]?.[3]) {
+          if (paintIndicatorsOnly) {
+            // Other effects don't use the painted layers: show neutral grey
+            return [0, 0, TRANSPARENT_DIM, 1];
+          }
           layer = keymapLayer;
         }
         while (layer > 0 && layers[layer][key.li]?.[3]) {
@@ -96,7 +103,7 @@ export const useColorPainter = (
           ? [hue, sat, val, 0]
           : [hue, sat, val * TRANSPARENT_DIM, 1];
       }),
-    [layers, paintLayer, layerCount, keymapLayer, keys],
+    [layers, paintLayer, layerCount, keymapLayer, paintIndicatorsOnly, keys],
   );
 
   const onKeycapPointerHandler = useCallback(

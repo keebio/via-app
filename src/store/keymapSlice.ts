@@ -32,6 +32,9 @@ type KeymapState = {
   selectedPaletteTransparent: boolean;
   // Indicator overlay the key painter edits instead of the keymap layer
   selectedPaintIndicator: number | null;
+  // Painter opened from the "Status Indicators" control: only indicators can be
+  // painted, since lighting layers only show in the Direct effect
+  paintIndicatorsOnly: boolean;
 };
 
 const initialState: KeymapState = {
@@ -44,6 +47,7 @@ const initialState: KeymapState = {
   selectedPaletteBrightness: 255,
   selectedPaletteTransparent: false,
   selectedPaintIndicator: null,
+  paintIndicatorsOnly: false,
 };
 
 const keymapSlice = createSlice({
@@ -67,6 +71,9 @@ const keymapSlice = createSlice({
       action: PayloadAction<number | null>,
     ) => {
       state.selectedPaintIndicator = action.payload;
+    },
+    setPaintIndicatorsOnly: (state, action: PayloadAction<boolean>) => {
+      state.paintIndicatorsOnly = action.payload;
     },
     setNumberOfLayers: (state, action: PayloadAction<number>) => {
       state.numberOfLayers = action.payload;
@@ -149,6 +156,7 @@ export const {
   setSelectedPaletteBrightness,
   setSelectedPaletteTransparent,
   setSelectedPaintIndicator,
+  setPaintIndicatorsOnly,
 } = keymapSlice.actions;
 
 export default keymapSlice.reducer;
@@ -239,6 +247,8 @@ export const getSelectedPaletteTransparent = (state: RootState) =>
   state.keymap.selectedPaletteTransparent;
 export const getSelectedPaintIndicator = (state: RootState) =>
   state.keymap.selectedPaintIndicator;
+export const getPaintIndicatorsOnly = (state: RootState) =>
+  state.keymap.paintIndicatorsOnly;
 export const getSelectedPaletteColor = createSelector(
   getSelected256PaletteColor,
   ([hue, sat]) => {

@@ -64,6 +64,10 @@ type ControlGetSet = {
 
 type VIACustomControlProps = VIAItem & ControlGetSet;
 
+// keebio/via_per_key_rgb: a color-palette control with this ID paints only the
+// indicator overlays, for effects other than Direct
+const INDICATOR_CONTROL_ID = 'id_via_per_key_indicators';
+
 const boxOrArr = <N extends any>(elem: N | N[]) =>
   Array.isArray(elem) ? elem : [elem];
 
@@ -198,7 +202,11 @@ const VIACustomControl = (props: VIACustomControlProps) => {
       );
     }
     case 'color-palette': {
-      return <ConnectedColorPalettePicker />;
+      return (
+        <ConnectedColorPalettePicker
+          indicatorsOnly={name === INDICATOR_CONTROL_ID}
+        />
+      );
     }
   }
   return null;

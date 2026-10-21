@@ -18,6 +18,8 @@ type Props = {
   indicators?: string[];
   indicator?: number | null;
   onIndicatorChange?: (indicator: number | null) => void;
+  // False hides the keymap layer option (indicators only)
+  allowLayer?: boolean;
 };
 
 const PRESETS: {label: string; hue: number; sat: number}[] = [
@@ -58,6 +60,8 @@ const Container = styled.div`
   flex-direction: column;
   row-gap: 10px;
   width: 240px;
+  /* Clear of the menu row dividers above and below */
+  padding: 6px 0;
 `;
 
 const Area = styled.div`
@@ -217,6 +221,7 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
     indicators = [],
     indicator = null,
     onIndicatorChange,
+    allowLayer = true,
   } = props;
   const isOverlay = layer > 0 || indicator !== null;
   // Brightness to return to when a preset is picked after "Off"
@@ -249,13 +254,15 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
     <Container>
       {indicators.length > 0 && onIndicatorChange && (
         <OverlayButtons>
-          <OverlayButton
-            $selected={indicator === null}
-            title="Paint the keymap layer selected above the keyboard"
-            onClick={() => onIndicatorChange(null)}
-          >
-            Layer {layer}
-          </OverlayButton>
+          {allowLayer && (
+            <OverlayButton
+              $selected={indicator === null}
+              title="Paint the keymap layer selected above the keyboard"
+              onClick={() => onIndicatorChange(null)}
+            >
+              Layer {layer}
+            </OverlayButton>
+          )}
           {indicators.map((name, i) => (
             <OverlayButton
               key={name}

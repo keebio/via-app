@@ -10,6 +10,7 @@ import {
   getSelectedPaletteTransparent,
   setSelectedPaletteBrightness,
   setSelectedPaletteColor,
+  setPaintIndicatorsOnly,
   setSelectedPaintIndicator,
   setSelectedPaletteTransparent,
 } from 'src/store/keymapSlice';
@@ -56,7 +57,9 @@ const PreviousColorOption = styled.div<{$selected: boolean}>`
 // Firmware indicator overlay order
 const INDICATOR_NAMES = ['Caps Lock', 'Num Lock', 'Scroll Lock', 'Caps Word'];
 
-export const ConnectedColorPalettePicker: React.FC = () => {
+export const ConnectedColorPalettePicker: React.FC<{
+  indicatorsOnly?: boolean;
+}> = ({indicatorsOnly = false}) => {
   const dispatch = useDispatch();
   const [hue, sat] = useAppSelector(getSelected256PaletteColor);
   const brightness = useAppSelector(getSelectedPaletteBrightness);
@@ -73,7 +76,15 @@ export const ConnectedColorPalettePicker: React.FC = () => {
   const indicator =
     selectedIndicator !== null && selectedIndicator < indicatorCount
       ? selectedIndicator
-      : null;
+      : indicatorsOnly && indicatorCount > 0
+        ? 0
+        : null;
+  useEffect(() => {
+    dispatch(setPaintIndicatorsOnly(indicatorsOnly));
+    return () => {
+      dispatch(setPaintIndicatorsOnly(false));
+    };
+  }, [dispatch, indicatorsOnly]);
   const onChange = useCallback(
     (hue: number, sat: number, brightness: number) => {
       dispatch(setSelectedPaletteColor([hue, sat]));
@@ -110,6 +121,7 @@ export const ConnectedColorPalettePicker: React.FC = () => {
       indicators={INDICATOR_NAMES.slice(0, indicatorCount)}
       indicator={indicator}
       onIndicatorChange={onIndicatorChange}
+      allowLayer={!indicatorsOnly}
     />
   );
 };

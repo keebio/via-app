@@ -14,8 +14,16 @@ import {
   setSelectedPaintIndicator,
   setSelectedPaletteTransparent,
 } from 'src/store/keymapSlice';
-import {getSelectedCustomMenuData} from 'src/store/menusSlice';
-import {updateShowKeyPainter} from 'src/store/menusSlice';
+import {
+  getSelectedCustomMenuData,
+  paintPerKeyLeds,
+  updateShowKeyPainter,
+} from 'src/store/menusSlice';
+import {
+  getPerKeyLighting,
+  INDICATOR_NAMES,
+  resolvePaintOverlay,
+} from 'src/utils/per-key-lighting';
 import {getRGB} from 'src/utils/color-math';
 import styled from 'styled-components';
 import {ColorPicker} from './color-picker';
@@ -54,9 +62,6 @@ const PreviousColorOption = styled.div<{$selected: boolean}>`
     props.$selected ? 'var(--color_accent)' : 'var(--border_color_cell)'};
 `;
 
-// Firmware indicator overlay order
-const INDICATOR_NAMES = ['Caps Lock', 'Num Lock', 'Scroll Lock', 'Caps Word'];
-
 export const ConnectedColorPalettePicker: React.FC<{
   indicatorsOnly?: boolean;
 }> = ({indicatorsOnly = false}) => {
@@ -67,18 +72,37 @@ export const ConnectedColorPalettePicker: React.FC<{
   // Lighting layer follows VIA's keymap layer selector
   const layer = useAppSelector(getSelectedLayerIndex);
   const customMenuData = useAppSelector(getSelectedCustomMenuData);
-  // __perKeyLayers holds the lighting layers followed by indicator overlays
-  const indicatorCount: number =
-    (customMenuData as any)?.__perKeyIndicatorCount?.[0] ?? 0;
-  const layerCount: number =
-    ((customMenuData as any)?.__perKeyLayers?.length ?? 1) - indicatorCount;
+  const {layers, layerCount, indicatorCount, underglow} =
+    getPerKeyLighting(customMenuData);
   const selectedIndicator = useAppSelector(getSelectedPaintIndicator);
-  const indicator =
-    selectedIndicator !== null && selectedIndicator < indicatorCount
-      ? selectedIndicator
-      : indicatorsOnly && indicatorCount > 0
-        ? 0
-        : null;
+  const {indicator, overlay} = resolvePaintOverlay(
+    Math.max(layerCount, 1),
+    indicatorCount,
+    layer,
+    selectedIndicator,
+    indicatorsOnly,
+  );
+  // Underglow on the overlay being painted: one entry, or null if mixed
+  const underglowLeds = layers
+    ? underglow.map((i) => layers[overlay]?.[i])
+    : [];
+  const underglowLed = underglowLeds.every(
+    (led) => led && led.join() === underglowLeds[0].join(),
+  )
+    ? underglowLeds[0]
+    : null;
+  const onPaintUnderglow = useCallback(
+    () =>
+      dispatch(
+        paintPerKeyLeds(overlay, underglow, {
+          hue,
+          sat,
+          brightness,
+          transparent,
+        }) as any,
+      ),
+    [dispatch, overlay, underglow, hue, sat, brightness, transparent],
+  );
   useEffect(() => {
     dispatch(setPaintIndicatorsOnly(indicatorsOnly));
     return () => {
@@ -114,14 +138,18 @@ export const ConnectedColorPalettePicker: React.FC<{
       sat={sat}
       brightness={brightness}
       onChange={onChange}
-      layerCount={layerCount}
-      layer={Math.min(layer, layerCount - 1)}
-      transparent={transparent && (layer > 0 || indicator !== null)}
+      layerCount={Math.max(layerCount, 1)}
+      layer={Math.max(0, Math.min(layer, layerCount - 1))}
+      transparent={transparent && overlay > 0}
       onTransparent={onTransparent}
       indicators={INDICATOR_NAMES.slice(0, indicatorCount)}
       indicator={indicator}
       onIndicatorChange={onIndicatorChange}
       allowLayer={!indicatorsOnly}
+      {...(underglowLeds.length > 0 && {
+        underglowLed,
+        onPaintUnderglow,
+      })}
     />
   );
 };

@@ -23,6 +23,9 @@ const PER_KEY_VAL_CHANNEL_COMMAND = [0, 3];
 const PER_KEY_LAYER_CHANNEL_COMMAND = [0, 4];
 const PER_KEY_LAYER_COUNT_CHANNEL_COMMAND = [0, 5];
 const PER_KEY_LAYER_LEDS_PER_PACKET = 6;
+// LED flags (LED_FLAG_*), e.g. to find underglow LEDs
+const PER_KEY_LED_FLAGS_CHANNEL_COMMAND = [0, 6];
+const PER_KEY_LED_FLAGS_PER_PACKET = 27;
 
 enum APICommand {
   GET_PROTOCOL_VERSION = 0x01,
@@ -470,14 +473,18 @@ export class KeyboardAPI {
 
   // Lighting layer and indicator overlay counts; rejects on firmware without
   // lighting layers. Indicator overlays follow the layers in overlay index.
-  async getPerKeyLayerInfo(): Promise<{layers: number; indicators: number}> {
+  async getPerKeyLayerInfo(): Promise<{
+    layers: number;
+    indicators: number;
+    ledCount: number; // 0 on firmware that doesn't report it
+  }> {
     const res = await this.hidCommand(
       APICommand.CUSTOM_MENU_GET_VALUE,
       PER_KEY_LAYER_COUNT_CHANNEL_COMMAND,
       'CUSTOM_MENU_GET_VALUE',
       false,
     );
-    return {layers: res[3], indicators: res[4]};
+    return {layers: res[3], indicators: res[4], ledCount: res[5]};
   }
 
   // Returns [hue, sat, val, transparent] for LEDs 0..ledCount-1 on a layer
@@ -499,6 +506,26 @@ export class KeyboardAPI {
       }),
     );
     return res.flat();
+  }
+
+  // Rejects on firmware that doesn't report LED flags
+  async getPerKeyLedFlags(ledCount: number): Promise<number[]> {
+    const flags: number[] = [];
+    for (
+      let start = 0;
+      start < ledCount;
+      start += PER_KEY_LED_FLAGS_PER_PACKET
+    ) {
+      const count = Math.min(PER_KEY_LED_FLAGS_PER_PACKET, ledCount - start);
+      const res = await this.hidCommand(
+        APICommand.CUSTOM_MENU_GET_VALUE,
+        [...PER_KEY_LED_FLAGS_CHANNEL_COMMAND, start, count],
+        'CUSTOM_MENU_GET_VALUE',
+        false,
+      );
+      flags.push(...res.slice(5, 5 + count));
+    }
+    return flags;
   }
 
   // Writes [hue, sat, val, transparent] for LEDs 0..leds.length-1 on a layer

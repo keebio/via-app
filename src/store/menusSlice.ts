@@ -35,6 +35,7 @@ import {
 } from './devicesSlice';
 import type {AppThunk, RootState} from './index';
 import {getSelectedFirmwareVersion} from './firmwareSlice';
+import {applyBrush, PerKeyBrush} from 'src/utils/per-key-lighting';
 
 type CustomMenuData = {
   // number[][][] holds per-key lighting layers (__perKeyLayers)
@@ -125,6 +126,37 @@ export const updateCustomMenuValue =
 
     const channel = rest[0];
     api.commitCustomMenu(channel);
+  };
+
+// Paints LEDs on a per-key lighting overlay, keeping the menu data in sync
+export const paintPerKeyLeds =
+  (overlay: number, leds: number[], brush: PerKeyBrush): AppThunk =>
+  async (dispatch, getState) => {
+    const state = getState();
+    const connectedDevice = getSelectedConnectedDevice(state);
+    const api = getSelectedKeyboardAPI(state) as KeyboardAPI | undefined;
+    const menuData = getSelectedCustomMenuData(state);
+    const layers = (menuData as any)?.__perKeyLayers as
+      number[][][] | undefined;
+    if (!connectedDevice || !api || !menuData || !layers?.[overlay]) {
+      return;
+    }
+    const painted = layers[overlay].map((led, i) =>
+      leds.includes(i) ? applyBrush(led, brush, overlay) : led,
+    );
+    dispatch(
+      updateSelectedCustomMenuData({
+        devicePath: connectedDevice.path,
+        menuData: {
+          ...menuData,
+          __perKeyLayers: layers.map((layer, i) =>
+            i === overlay ? painted : layer,
+          ),
+        },
+      }),
+    );
+    leds.forEach((led) => api.setPerKeyLayerLED(overlay, led, painted[led]));
+    api.commitCustomMenu(0);
   };
 
 export const updateCustomMenuRangeValue =
@@ -404,7 +436,7 @@ export const updateV3MenuData =
         const ledIndices = Array(maxLedIndex + 1)
           .fill(0)
           .map((_, i) => i);
-        let layerInfo = {layers: 0, indicators: 0};
+        let layerInfo = {layers: 0, indicators: 0, ledCount: 0};
         try {
           layerInfo = await api.getPerKeyLayerInfo();
         } catch {
@@ -414,11 +446,22 @@ export const updateV3MenuData =
           // Lighting layers, then indicator overlays
           const overlays = [];
           const overlayCount = layerInfo.layers + layerInfo.indicators;
+          // Every LED, not just keys: underglow LEDs can be past the last key
+          const ledCount = layerInfo.ledCount || maxLedIndex + 1;
           for (let overlay = 0; overlay < overlayCount; overlay++) {
-            overlays.push(await api.getPerKeyLayer(overlay, maxLedIndex + 1));
+            overlays.push(await api.getPerKeyLayer(overlay, ledCount));
           }
           props.__perKeyLayers = overlays;
           props.__perKeyIndicatorCount = [layerInfo.indicators];
+          try {
+            const flags = await api.getPerKeyLedFlags(ledCount);
+            const LED_FLAG_UNDERGLOW = 0x02;
+            props.__perKeyUnderglow = flags.flatMap((flag, i) =>
+              flag & LED_FLAG_UNDERGLOW ? [i] : [],
+            );
+          } catch {
+            // Firmware that doesn't report LED flags: no underglow painting
+          }
         } else {
           props.__perKeyRGB = await api.getPerKeyRGBMatrix(ledIndices);
           try {

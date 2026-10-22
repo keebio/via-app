@@ -36,6 +36,14 @@ type AdvancedControlProps = Props & {meta: ControlMeta};
 export const VIACustomItem = React.memo(
   (props: VIACustomControlProps & {_id: string}) => {
     const {t} = useTranslation();
+    // With lighting layers, underglow is painted per layer from the key painter
+    if (
+      'type' in props &&
+      props.content?.[0] === UNDERGLOW_CONTROL_ID &&
+      (props.menuData as any)?.__perKeyLayers
+    ) {
+      return null;
+    }
     return (
       <ControlRow id={props._id}>
         <Label>{t(props.label)}</Label>
@@ -67,6 +75,8 @@ type VIACustomControlProps = VIAItem & ControlGetSet;
 // keebio/via_per_key_rgb: a color-palette control with this ID paints only the
 // indicator overlays, for effects other than Direct
 const INDICATOR_CONTROL_ID = 'id_via_per_key_indicators';
+// keebio/via_per_key_rgb's base-layer underglow color (for stock VIA)
+const UNDERGLOW_CONTROL_ID = 'id_via_per_key_underglow';
 
 const boxOrArr = <N extends any>(elem: N | N[]) =>
   Array.isArray(elem) ? elem : [elem];

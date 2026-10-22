@@ -20,6 +20,10 @@ type Props = {
   onIndicatorChange?: (indicator: number | null) => void;
   // False hides the keymap layer option (indicators only)
   allowLayer?: boolean;
+  // Underglow LEDs have no key to paint: this applies the brush to all of them
+  // on the overlay being painted. underglowLed is null when they differ.
+  underglowLed?: number[] | null;
+  onPaintUnderglow?: () => void;
 };
 
 const PRESETS: {label: string; hue: number; sat: number}[] = [
@@ -176,6 +180,17 @@ const Preview = styled.div`
   flex: none;
 `;
 
+const UnderglowControls = styled.div`
+  display: flex;
+  align-items: center;
+  column-gap: 8px;
+`;
+
+const UnderglowLabel = styled.span`
+  font-size: 16px;
+  color: var(--color_label-highlighted);
+`;
+
 const Readout = styled.span`
   font-size: 14px;
   color: var(--color_label-highlighted);
@@ -222,6 +237,8 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
     indicator = null,
     onIndicatorChange,
     allowLayer = true,
+    underglowLed,
+    onPaintUnderglow,
   } = props;
   const isOverlay = layer > 0 || indicator !== null;
   // Brightness to return to when a preset is picked after "Off"
@@ -359,6 +376,39 @@ export const PainterColorPicker: React.FC<Props> = (props) => {
                 )}%  B ${Math.round((brightness / 255) * 100)}%`}
         </Readout>
       </Row>
+      {onPaintUnderglow && (
+        <Row>
+          <UnderglowLabel>Underglow</UnderglowLabel>
+          <UnderglowControls>
+            <Preview
+              title={
+                underglowLed === null
+                  ? 'Underglow LEDs differ on this layer'
+                  : 'Underglow on this layer'
+              }
+              style={{
+                background:
+                  underglowLed === null
+                    ? 'linear-gradient(135deg, #888 50%, #444 50%)'
+                    : underglowLed?.[3]
+                      ? 'repeating-conic-gradient(#999 0 25%, #eee 0 50%) 50% / 10px 10px'
+                      : hsvToCss(
+                          underglowLed?.[0] ?? 0,
+                          underglowLed?.[1] ?? 0,
+                          underglowLed?.[2] ?? 0,
+                        ),
+              }}
+            />
+            <OverlayButton
+              $selected={false}
+              title="Paint every underglow LED on this layer with the brush"
+              onClick={onPaintUnderglow}
+            >
+              Apply brush
+            </OverlayButton>
+          </UnderglowControls>
+        </Row>
+      )}
     </Container>
   );
 };

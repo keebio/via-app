@@ -5,9 +5,10 @@ import {
   getSelectedConnectedDevice,
   getSelectedKeyboardAPI,
 } from 'src/store/devicesSlice';
-import {useAppSelector} from 'src/store/hooks';
-import {getSelectedCustomMenuData} from 'src/store/menusSlice';
+import {useAppDispatch, useAppSelector} from 'src/store/hooks';
+import {getSelectedCustomMenuData, paintPerKeyLeds} from 'src/store/menusSlice';
 import {getHSVFrom256} from './color-math';
+import {getPerKeyLighting, resolvePaintOverlay} from './per-key-lighting';
 
 // Keys that fall through to a lower lighting layer are drawn dimmed
 const TRANSPARENT_DIM = 0.3;
@@ -21,6 +22,7 @@ export const useColorPainter = (
   selectedPaintIndicator: number | null = null,
   paintIndicatorsOnly = false,
 ) => {
+  const dispatch = useAppDispatch();
   const selectedDevice = useAppSelector(getSelectedConnectedDevice);
   const api = useAppSelector(getSelectedKeyboardAPI);
   const customMenuData = useAppSelector(getSelectedCustomMenuData) || {
@@ -28,28 +30,17 @@ export const useColorPainter = (
     __perKeyVal: [],
   };
   const [keyColors, setKeyColors] = useState<number[][]>([]);
-  // [hue, sat, val, transparent] per LED per layer, on firmware with lighting layers
-  const deviceLayers: number[][][] | undefined = (customMenuData as any)
-    .__perKeyLayers;
-  const [layers, setLayers] = useState<number[][][] | undefined>();
-  useEffect(() => {
-    setLayers(deviceLayers?.map((layer) => layer.map((led) => [...led])));
-  }, [deviceLayers]);
-  // Overlays are the lighting layers followed by the indicator overlays
-  const indicatorCount: number =
-    (customMenuData as any).__perKeyIndicatorCount?.[0] ?? 0;
-  const layerCount = layers ? layers.length - indicatorCount : 0;
-  const keymapLayer = layers
-    ? Math.max(0, Math.min(selectedPaintLayer, layerCount - 1))
-    : 0;
-  const paintIndicator =
-    selectedPaintIndicator ?? (paintIndicatorsOnly ? 0 : null);
-  const paintLayer =
-    paintIndicator !== null && paintIndicator < indicatorCount
-      ? layerCount + paintIndicator
-      : keymapLayer;
-  // The base layer can't be transparent; there the brush paints its color
-  const paintTransparent = selectedPaletteTransparent && paintLayer > 0;
+  // On firmware with lighting layers, painted state lives in the menu data so
+  // the painter controls (e.g. underglow) and the keyboard view stay in sync
+  const {layers, layerCount, indicatorCount} =
+    getPerKeyLighting(customMenuData);
+  const {keymapLayer, overlay: paintLayer} = resolvePaintOverlay(
+    layerCount,
+    indicatorCount,
+    selectedPaintLayer,
+    selectedPaintIndicator,
+    paintIndicatorsOnly,
+  );
 
   useEffect(() => {
     const perKeyRGB = (customMenuData as any).__perKeyRGB ?? [];
@@ -116,21 +107,13 @@ export const useColorPainter = (
           return;
         }
         if (layers) {
-          const [h, s, v] = layers[paintLayer][ledIndex] ?? [hue, sat, 255];
-          // Off and transparent keep the LED's color so it can be restored
-          const led = paintTransparent
-            ? [h, s, v, 1]
-            : selectedPaletteBrightness === 0
-              ? [h, s, 0, 0]
-              : [hue, sat, selectedPaletteBrightness, 0];
-          api.setPerKeyLayerLED(paintLayer, ledIndex, led);
-          api.commitCustomMenu(0);
-          setLayers((current) =>
-            current?.map((layer, i) =>
-              i === paintLayer
-                ? layer.map((entry, j) => (j === ledIndex ? led : entry))
-                : layer,
-            ),
+          dispatch(
+            paintPerKeyLeds(paintLayer, [ledIndex], {
+              hue,
+              sat,
+              brightness: selectedPaletteBrightness,
+              transparent: selectedPaletteTransparent,
+            }),
           );
           return;
         }
@@ -156,10 +139,11 @@ export const useColorPainter = (
       }
     },
     [
+      dispatch,
       setKeyColors,
       selectedPaletteColor,
       selectedPaletteBrightness,
-      paintTransparent,
+      selectedPaletteTransparent,
       paintLayer,
       layers,
       keys,

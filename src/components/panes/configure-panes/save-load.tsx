@@ -57,10 +57,14 @@ type ViaLightingFile = {
 };
 
 // Lighting channels (backlight, RGB light, RGB matrix, LED matrix) plus
-// via_per_key_rgb's underglow color. Other channel 0 values are board-specific
-// and may be buttons, so they're left out.
+// via_per_key_rgb's underglow color and sleep timer. Other channel 0 values are
+// board-specific and may be buttons, so they're left out.
 const LIGHTING_CHANNELS = [1, 2, 3, 5];
-const EXTRA_LIGHTING_COMMANDS = ['id_via_per_key_underglow'];
+const EXTRA_LIGHTING_COMMANDS = [
+  'id_via_per_key_underglow',
+  'id_via_per_key_sleep_timer',
+  'id_via_per_key_sleep_timer_custom',
+];
 const isLightingCommand = (name: string, [channel]: number[]) =>
   LIGHTING_CHANNELS.includes(channel) || EXTRA_LIGHTING_COMMANDS.includes(name);
 

@@ -157,9 +157,16 @@ export const EncoderKey = (props: {
   size: number;
   style: React.CSSProperties;
   onClick: (evt: React.MouseEvent) => void;
+  onPointerDown?: (evt: React.MouseEvent) => void;
+  onPointerOver?: (evt: React.MouseEvent) => void;
 }) => {
   return (
-    <EncoderKeyContainer onClick={props.onClick} style={props.style}>
+    <EncoderKeyContainer
+      onClick={props.onClick}
+      onPointerDown={props.onPointerDown}
+      onPointerOver={props.onPointerOver}
+      style={props.style}
+    >
       <EncoderKeyContent2
         $size={props.size && +props.size}
         $innerPadding={(5 * props.size) / 52}

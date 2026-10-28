@@ -307,6 +307,8 @@ export const Keycap: React.FC<TwoStringKeycapProps> = React.memo((props) => {
   return shouldRotate ? (
     <EncoderKey
       onClick={onClick}
+      onPointerDown={onPointerDown}
+      onPointerOver={onPointerOver}
       size={textureWidth * CSSVarObject.keyWidth}
       style={{
         transform: `translate(${

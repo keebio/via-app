@@ -47,6 +47,18 @@ type MenusState = {
   customMenuDataMap: CustomMenuDataMap;
   commonMenusMap: CommonMenusMap;
   showKeyPainter: boolean;
+  // Lighting effect shown animated on the keyboard view while its dropdown is
+  // on screen
+  lightingPreview: LightingPreview | null;
+};
+
+export type LightingPreview = {
+  // Effect command name, e.g. id_qmk_rgb_matrix_effect
+  effectId: string;
+  label: string;
+  // Hovering a different effect in the open dropdown: shown over the key
+  // painter, which otherwise wins
+  hovering: boolean;
 };
 
 type PendingCustomMenuSync = {
@@ -61,6 +73,7 @@ const initialState: MenusState = {
   customMenuDataMap: {},
   commonMenusMap: {},
   showKeyPainter: false,
+  lightingPreview: null,
 };
 
 const menusSlice = createSlice({
@@ -69,6 +82,18 @@ const menusSlice = createSlice({
   reducers: {
     updateShowKeyPainter: (state, action: PayloadAction<boolean>) => {
       state.showKeyPainter = action.payload;
+    },
+    updateLightingPreview: (
+      state,
+      action: PayloadAction<LightingPreview | null>,
+    ) => {
+      state.lightingPreview = action.payload;
+    },
+    clearLightingPreview: (state, action: PayloadAction<string>) => {
+      // Only clear if no other effect dropdown has taken over
+      if (state.lightingPreview?.effectId === action.payload) {
+        state.lightingPreview = null;
+      }
     },
     updateSelectedCustomMenuData: (
       state,
@@ -92,6 +117,8 @@ const menusSlice = createSlice({
 
 export const {
   updateShowKeyPainter,
+  updateLightingPreview,
+  clearLightingPreview,
   updateSelectedCustomMenuData,
   updateCustomMenuData,
 } = menusSlice.actions;
@@ -562,6 +589,9 @@ export const getCommonMenusDataMap = (state: RootState) =>
 
 export const getShowKeyPainter = (state: RootState) =>
   state.menus.showKeyPainter;
+
+export const getLightingPreview = (state: RootState) =>
+  state.menus.lightingPreview;
 
 export const getCustomMenuDataMap = (state: RootState) =>
   state.menus.customMenuDataMap;

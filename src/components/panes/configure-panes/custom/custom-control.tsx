@@ -1,4 +1,5 @@
-import React from 'react';
+import React, {useCallback, useEffect, useRef} from 'react';
+import {components, type OptionProps} from 'react-select';
 import {PelpiKeycodeInput} from '../../../inputs/pelpi/keycode-input';
 import {AccentButton} from '../../../inputs/accent-button';
 import {AccentSlider} from '../../../inputs/accent-slider';
@@ -11,6 +12,12 @@ import {ArrayColorPicker} from '../../../inputs/color-picker';
 import {ConnectedColorPalettePicker} from 'src/components/inputs/color-palette-picker';
 import {shiftFrom16Bit, shiftTo16Bit} from 'src/utils/keyboard-api';
 import {useTranslation} from 'react-i18next';
+import {useAppDispatch, useAppSelector} from 'src/store/hooks';
+import {
+  clearLightingPreview,
+  getLightingPreview,
+  updateLightingPreview,
+} from 'src/store/menusSlice';
 import {
   decodeRangeValue,
   getRangeBounds,
@@ -77,6 +84,73 @@ type VIACustomControlProps = VIAItem & ControlGetSet;
 const INDICATOR_CONTROL_ID = 'id_via_per_key_indicators';
 // keebio/via_per_key_rgb's base-layer underglow color (for stock VIA)
 const UNDERGLOW_CONTROL_ID = 'id_via_per_key_underglow';
+
+// Lighting effect dropdowns, e.g. id_qmk_rgb_matrix_effect or
+// id_qmk_rgblight_effect, drive the animated preview on the keyboard view
+const isLightingEffectControl = (name: string) => /_effect$/.test(name);
+
+type EffectOption = {value: number; label: string; rawLabel: string};
+
+// Reports the option under the mouse/keyboard focus so it can be previewed
+const PreviewOption = (props: OptionProps<EffectOption, false>) => {
+  const {isFocused, data, selectProps} = props;
+  const onOptionFocus = (selectProps as any).onOptionFocus as
+    ((option: EffectOption) => void) | undefined;
+  useEffect(() => {
+    if (isFocused) {
+      onOptionFocus?.(data);
+    }
+  }, [isFocused, data]);
+  return <components.Option {...props} />;
+};
+
+const EffectSelect: React.FC<{
+  effectId: string;
+  options: EffectOption[];
+  value: EffectOption | undefined;
+  onChange: (option: any) => void;
+}> = ({effectId, options, value, onChange}) => {
+  const dispatch = useAppDispatch();
+  const preview = useAppSelector(getLightingPreview);
+  const menuOpen = useRef(false);
+  const showPreview = useCallback(
+    (label: string | undefined, hovering = false) =>
+      label !== undefined &&
+      dispatch(updateLightingPreview({effectId, label, hovering})),
+    [dispatch, effectId],
+  );
+
+  // Preview the current effect while this control is on screen. If another
+  // effect dropdown (e.g. underglow) is already previewing, leave it until the
+  // user touches this one.
+  useEffect(() => {
+    if (!menuOpen.current && (!preview || preview.effectId === effectId)) {
+      showPreview(value?.rawLabel);
+    }
+  }, [value?.rawLabel]);
+  useEffect(() => () => void dispatch(clearLightingPreview(effectId)), []);
+
+  return (
+    <AccentSelect
+      onChange={onChange}
+      options={options}
+      value={value}
+      components={{Option: PreviewOption as any}}
+      {...({
+        onOptionFocus: (option: EffectOption) =>
+          menuOpen.current &&
+          showPreview(option.rawLabel, option.value !== value?.value),
+      } as any)}
+      onMenuOpen={() => {
+        menuOpen.current = true;
+      }}
+      onMenuClose={() => {
+        menuOpen.current = false;
+        showPreview(value?.rawLabel);
+      }}
+    />
+  );
+};
 
 const boxOrArr = <N extends any>(elem: N | N[]) =>
   Array.isArray(elem) ? elem : [elem];
@@ -189,17 +263,27 @@ const VIACustomControl = (props: VIACustomControlProps) => {
           return {
             value: value || idx,
             label: t(label),
+            // Untranslated, for matching lighting effects by name
+            rawLabel: label,
           };
         },
       );
-      return (
+      const selected = selectOptions.find((p: any) => value[0] === p.value);
+      const onChange = (option: any) =>
+        option && props.updateValue(name, ...command, +option.value);
+      return isLightingEffectControl(name) ? (
+        <EffectSelect
+          effectId={name}
+          options={selectOptions}
+          value={selected}
+          onChange={onChange}
+        />
+      ) : (
         <AccentSelect
           /*width={250}*/
-          onChange={(option: any) =>
-            option && props.updateValue(name, ...command, +option.value)
-          }
+          onChange={onChange}
           options={selectOptions}
-          value={selectOptions.find((p: any) => value[0] === p.value)}
+          value={selected}
         />
       );
     }

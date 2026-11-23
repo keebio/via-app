@@ -87,9 +87,12 @@ const selectConnectedDevice =
           await dispatch(updateV3MenuData(connectedDevice));
         }
       } catch (e) {
+        console.error('Loading lighting/menu data failed', e);
         dispatch(
           logAppError({
-            message: 'Loading lighting/menu data failed',
+            message: `Loading lighting/menu data failed: ${
+              e instanceof Error ? e.message : String(e)
+            }`,
             deviceInfo,
           }),
         );

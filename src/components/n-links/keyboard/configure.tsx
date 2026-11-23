@@ -14,9 +14,10 @@ import {
   getSelectedPaintIndicator,
   getSelectedPaletteTransparent,
 } from 'src/store/keymapSlice';
-import {getShowKeyPainter} from 'src/store/menusSlice';
+import {getLightingPreview, getShowKeyPainter} from 'src/store/menusSlice';
 import {DisplayMode, NDimension} from 'src/types/keyboard-rendering';
 import {useColorPainter} from 'src/utils/use-color-painter';
+import {useLightingPreview} from 'src/utils/use-lighting-preview';
 import {KeyboardCanvas as FiberKeyboardCanvas} from '../../three-fiber/keyboard-canvas';
 import {KeyboardCanvas as StringKeyboardCanvas} from '../../two-string/keyboard-canvas';
 
@@ -59,15 +60,34 @@ export const ConfigureKeyboard = (props: {
     selectedPaintIndicator,
     paintIndicatorsOnly,
   );
+  const previewColors = useLightingPreview(keys);
+  const lightingPreview = useAppSelector(getLightingPreview);
+  // Hovering another effect in the open dropdown shows it full-board, over any
+  // key painter. Otherwise a painter wins, except the indicator painter, which
+  // paints over the running effect.
+  const showPreview =
+    !!previewColors && (!showKeyPainter || !!lightingPreview?.hovering);
+  const blendPreview =
+    !!previewColors && !showPreview && showKeyPainter && paintIndicatorsOnly;
+  const painterColors = useMemo(
+    () =>
+      blendPreview && keyColors
+        ? keyColors.map((color, i) =>
+            // Keys transparent in the indicator overlay show the effect
+            color && color[3] ? previewColors![i] : color,
+          )
+        : keyColors,
+    [blendPreview, keyColors, previewColors],
+  );
   const [normalizedKeys, normalizedColors] = useMemo(() => {
     // skip keys without colors on it
-    return keyColors && keys
+    return painterColors && keys
       ? [
-          keys.filter((_, i) => keyColors[i] && keyColors[i].length),
-          keyColors.filter((i) => i && i.length),
+          keys.filter((_, i) => painterColors[i] && painterColors[i].length),
+          painterColors.filter((i) => i && i.length),
         ]
       : [null, null];
-  }, [keys, keyColors]);
+  }, [keys, painterColors]);
 
   if (!definition || !dimensions) {
     return null;
@@ -85,8 +105,20 @@ export const ConfigureKeyboard = (props: {
         definition={definition}
         containerDimensions={dimensions}
         mode={DisplayMode.Configure}
-        shouldHide={showKeyPainter}
+        shouldHide={showKeyPainter || showPreview}
       />
+      {showPreview ? (
+        <KeyboardCanvas
+          matrixKeycodes={matrixKeycodes}
+          keys={keys}
+          selectable={false}
+          definition={definition}
+          containerDimensions={dimensions}
+          mode={DisplayMode.ConfigureColors}
+          keyColors={previewColors}
+          shouldHide={false}
+        />
+      ) : null}
       {showKeyboardCanvas ? (
         <KeyboardCanvas
           matrixKeycodes={matrixKeycodes}
@@ -98,7 +130,7 @@ export const ConfigureKeyboard = (props: {
           keyColors={normalizedColors}
           onKeycapPointerDown={onKeycapPointerDown}
           onKeycapPointerOver={onKeycapPointerOver}
-          shouldHide={!showKeyPainter}
+          shouldHide={!showKeyPainter || showPreview}
         />
       ) : null}
     </>

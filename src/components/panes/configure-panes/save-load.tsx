@@ -4,6 +4,7 @@ import stringify from 'json-stringify-pretty-compact';
 import {ErrorMessage, SuccessMessage} from '../../styled';
 import {AccentUploadButton} from '../../inputs/accent-upload-button';
 import {AccentButton} from '../../inputs/accent-button';
+import {MessageDialog} from '../../inputs/message-dialog';
 import {getByteForCode, getCodeForByte} from '../../../utils/key';
 import deprecatedKeycodes from '../../../utils/key-to-byte/deprecated-keycodes';
 import {title, component} from '../../icons/save';
@@ -24,6 +25,7 @@ import {
 } from 'src/store/devicesSlice';
 import {getExpressions, saveMacros} from 'src/store/macrosSlice';
 import {useTranslation} from 'react-i18next';
+import {resetKeyboard} from 'src/store/devicesThunks';
 import {getSelectedDefinitionName} from 'src/store/definitionNameSlice';
 import {
   getCustomCommands,
@@ -82,6 +84,23 @@ const SaveLoadPane = styled(CenterPane)`
   background: var(--color_dark_grey);
 `;
 
+// Kept apart from the import/export rows so it isn't hit by accident
+const ResetRow = styled(ControlRow)`
+  margin-top: 40px;
+  border-top: 1px solid var(--border_color_cell);
+`;
+
+const DangerButton = styled(AccentButton)`
+  color: ${(props) =>
+    props.disabled ? 'var(--bg_control)' : 'var(--color_error)'};
+  border-color: ${(props) =>
+    props.disabled ? 'var(--bg_control)' : 'var(--color_error)'};
+
+  &:hover {
+    border-color: var(--color_error);
+  }
+`;
+
 const Container = styled.div`
   display: flex;
   align-items: center;
@@ -117,6 +136,33 @@ export const Pane: FC = () => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const deviceName = selectedDevice.productName || t('the selected keyboard');
+
+  const resetToDefaults = async () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsResetting(true);
+    try {
+      const result = await dispatch(resetKeyboard());
+      if (result === 'rebooting') {
+        // The keyboard drops off USB and this pane unmounts until it's back
+        setSuccessMessage(t('Keyboard reset. It will reconnect in a moment.'));
+      } else if (result === 'keymap') {
+        setSuccessMessage(
+          t(
+            'Keymap and macros reset to defaults. Lighting was not reset: update the firmware for a full reset.',
+          ),
+        );
+      } else {
+        setErrorMessage(t('Could not reset the keyboard.'));
+      }
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const getEncoderValues = async () => {
     const {layouts} = selectedDefinition;
@@ -470,11 +516,37 @@ export const Pane: FC = () => {
               </ControlRow>
             </>
           ) : null}
+          <ResetRow>
+            <Label>{t('Reset to Defaults')}</Label>
+            <Detail>
+              <DangerButton
+                disabled={isResetting}
+                onClick={() => setShowResetConfirm(true)}
+              >
+                {isResetting ? t('Resetting...') : t('Reset')}
+              </DangerButton>
+            </Detail>
+          </ResetRow>
           {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
           {successMessage ? (
             <SuccessMessage>{successMessage}</SuccessMessage>
           ) : null}
         </Container>
+        <MessageDialog
+          isOpen={showResetConfirm}
+          cancelLabel="Cancel"
+          confirmLabel="Reset"
+          onCancel={() => setShowResetConfirm(false)}
+          onConfirm={() => {
+            setShowResetConfirm(false);
+            resetToDefaults();
+          }}
+        >
+          {t(
+            'This will reset {{deviceName}} to its firmware defaults: keymap, macros, layout options and lighting.\n\nExport your layout and lighting first if you want to keep them. This cannot be undone.',
+            {deviceName},
+          )}
+        </MessageDialog>
       </SaveLoadPane>
     </SpanOverflowCell>
   );

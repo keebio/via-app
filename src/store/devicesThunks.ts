@@ -23,7 +23,9 @@ import {
   clearAllDevices,
   getConnectedDevices,
   getForceAuthorize,
+  getSelectedConnectedDevice,
   getSelectedDevicePath,
+  getSelectedKeyboardAPI,
   getSupportedIds,
   selectDevice,
   markDeviceReady,
@@ -262,6 +264,81 @@ export const reloadConnectedDevices =
       dispatch(selectDevice(null));
       dispatch(setForceAuthorize(true));
     }
+  };
+
+// 'rebooting': the firmware cleared all of EEPROM and is restarting. It drops
+//   off USB and reconnects under a new path, which reloadConnectedDevices picks
+//   up and fully reloads.
+// 'keymap': only the keymap and macros (plus layout options, on firmware with
+//   VIA_EEPROM_ALLOW_RESET) were reset, in place. Lighting is unchanged.
+export type KeyboardResetResult = 'rebooting' | 'keymap' | 'failed';
+
+// Wait after an acknowledged id_eeprom_reset before checking whether the device
+// rebooted. keebio/via_eeprom_reset reboots 100 ms after replying.
+const REBOOT_CHECK_DELAY_MS = 500;
+const REBOOT_CHECK_TIMEOUT_MS = 1500;
+
+// Restores the selected device to its firmware defaults, as far as its firmware
+// allows:
+// - keebio/via_eeprom_reset handles id_eeprom_reset as a full EEPROM clear
+//   (RGB included) followed by a reboot
+// - stock QMK handles it only with VIA_EEPROM_ALLOW_RESET, resetting keymap,
+//   macros and layout options without rebooting
+// - otherwise it replies id_unhandled, and we fall back to resetting the
+//   keymap and macros with commands every VIA firmware supports
+export const resetKeyboard =
+  (): AppThunk<Promise<KeyboardResetResult>> => async (dispatch, getState) => {
+    const state = getState();
+    const connectedDevice = getSelectedConnectedDevice(state);
+    const api = getSelectedKeyboardAPI(state);
+    if (!connectedDevice || !api) {
+      return 'failed';
+    }
+    const deviceInfo = extractDeviceInfo(connectedDevice);
+
+    let handledEEPROMReset = true;
+    try {
+      await api.resetEEPROM(false);
+    } catch (e) {
+      handledEEPROMReset = false;
+    }
+
+    if (handledEEPROMReset) {
+      await new Promise((res) => setTimeout(res, REBOOT_CHECK_DELAY_MS));
+      if (!(await api.isResponsive(REBOOT_CHECK_TIMEOUT_MS))) {
+        return 'rebooting';
+      }
+    } else {
+      try {
+        await api.resetKeymap();
+        await api.resetMacros();
+      } catch (e) {
+        dispatch(
+          logAppError({
+            message: 'Resetting keymap and macros failed',
+            deviceInfo,
+          }),
+        );
+        return 'failed';
+      }
+    }
+
+    // The device is still up, so re-read what changed on it
+    try {
+      // John you drongo, don't trust the compiler, dispatches are totes awaitable for async thunks
+      await dispatch(loadMacros(connectedDevice));
+      await dispatch(loadLayoutOptions());
+      await dispatch(loadKeymapFromDevice(connectedDevice, true));
+    } catch (e) {
+      dispatch(
+        logAppError({
+          message: 'Reloading device data after reset failed',
+          deviceInfo,
+        }),
+      );
+    }
+
+    return 'keymap';
   };
 
 export const loadSupportedIds = (): AppThunk => async (dispatch) => {

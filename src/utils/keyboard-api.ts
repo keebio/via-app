@@ -33,7 +33,7 @@ enum APICommand {
   SET_KEYBOARD_VALUE = 0x03,
   DYNAMIC_KEYMAP_GET_KEYCODE = 0x04,
   DYNAMIC_KEYMAP_SET_KEYCODE = 0x05,
-  //  DYNAMIC_KEYMAP_CLEAR_ALL = 0x06,
+  DYNAMIC_KEYMAP_RESET = 0x06,
   CUSTOM_MENU_SET_VALUE = 0x07,
   CUSTOM_MENU_GET_VALUE = 0x08,
   CUSTOM_MENU_SAVE = 0x09,
@@ -686,8 +686,39 @@ export class KeyboardAPI {
     await this.hidCommand(APICommand.BACKLIGHT_CONFIG_SAVE);
   }
 
-  async resetEEPROM() {
-    await this.hidCommand(APICommand.EEPROM_RESET);
+  // Firmware without an id_eeprom_reset handler replies id_unhandled, which
+  // rejects. Pass reportErrors = false when that's an expected outcome.
+  async resetEEPROM(reportErrors = true) {
+    await this.hidCommand(
+      APICommand.EEPROM_RESET,
+      [],
+      'EEPROM_RESET',
+      reportErrors,
+    );
+  }
+
+  // Restores the keymap (and encoder map) to the defaults compiled into the
+  // firmware. Always available on VIA firmware.
+  async resetKeymap() {
+    await this.hidCommand(APICommand.DYNAMIC_KEYMAP_RESET);
+  }
+
+  // Resolves true if the device answers a harmless command within timeoutMs.
+  // Used to tell whether a device rebooted (and dropped off USB) after a reset.
+  async isResponsive(timeoutMs: number) {
+    const probe = this.hidCommand(
+      APICommand.GET_PROTOCOL_VERSION,
+      [],
+      'GET_PROTOCOL_VERSION',
+      false,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const timeout = new Promise<boolean>((res) =>
+      setTimeout(() => res(false), timeoutMs),
+    );
+    return Promise.race([probe, timeout]);
   }
 
   async jumpToBootloader() {

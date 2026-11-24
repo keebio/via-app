@@ -162,11 +162,13 @@ export const {
 export default keymapSlice.reducer;
 
 export const loadKeymapFromDevice =
-  (connectedDevice: ConnectedDevice): AppThunk =>
+  (connectedDevice: ConnectedDevice, force = false): AppThunk =>
   async (dispatch, getState) => {
     const state = getState();
 
-    if (getLoadProgress(state) === 1) {
+    // Pass force when the device's keymap has changed underneath us, e.g. after
+    // a keymap reset, so the already-loaded cache doesn't short circuit the read
+    if (!force && getLoadProgress(state) === 1) {
       return;
     }
 

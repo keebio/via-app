@@ -26,12 +26,16 @@ const Controls = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 20px;
 `;
 export const MessageDialog: React.FC<
   PropsWithChildren<{
     isOpen: boolean;
     onConfirm?(): void;
     onCancel?(): void;
+    // Renders a Cancel button alongside Confirm. Without it, onCancel only
+    // fires when the dialog is dismissed with Escape.
+    cancelLabel?: string;
     confirmLabel?: string;
   }>
 > = (props) => {
@@ -65,6 +69,16 @@ export const MessageDialog: React.FC<
       <ModalContainer>
         <PromptText>{props.children}</PromptText>
         <Controls>
+          {props.cancelLabel && (
+            <AccentButton
+              onClick={() => {
+                props.onCancel?.();
+                closeModal();
+              }}
+            >
+              {t(props.cancelLabel)}
+            </AccentButton>
+          )}
           <AccentButton
             onClick={() => {
               props.onConfirm?.();
